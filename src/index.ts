@@ -1,6 +1,6 @@
 import Fastify from "fastify";
 import { loadConfig } from "./config.js";
-import { createDatabase } from "./store/db.js";
+import { createPool } from "./store/db.js";
 import { UserStore } from "./store/users.js";
 import { VivariumStore } from "./store/vivariums.js";
 import { WsServer } from "./ws/server.js";
@@ -9,9 +9,9 @@ import { TelegramChat } from "./chat/telegram.js";
 
 async function main() {
   const config = loadConfig();
-  const db = createDatabase(config.dbPath);
-  const users = new UserStore(db);
-  const vivariumStore = new VivariumStore(db);
+  const pool = await createPool(config.databaseUrl);
+  const users = new UserStore(pool);
+  const vivariumStore = new VivariumStore(pool);
 
   const app = Fastify();
 
@@ -22,7 +22,6 @@ async function main() {
 
   const chatProvider = new TelegramChat(config, users, vivariumStore);
 
-  // Router needs wsServer, wsServer needs router callbacks — create router first with a placeholder
   let router: Router;
 
   const wsServer = new WsServer(app.server, {

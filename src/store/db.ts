@@ -1,35 +1,31 @@
-import Database from "better-sqlite3";
-import { mkdirSync } from "node:fs";
-import { dirname } from "node:path";
+import pg from "pg";
 
-export function createDatabase(dbPath: string): Database.Database {
-  mkdirSync(dirname(dbPath), { recursive: true });
+// Postgres returns BIGINT (OID 20) as strings by default.
+// Telegram IDs fit safely in JS numbers (< 2^53), so parse them.
+pg.types.setTypeParser(20, (val) => parseInt(val, 10));
 
-  const db = new Database(dbPath);
-  db.pragma("journal_mode = WAL");
-  db.pragma("foreign_keys = ON");
+const SCHEMA = `
+  CREATE TABLE IF NOT EXISTS users (
+    id              SERIAL PRIMARY KEY,
+    telegram_id     BIGINT UNIQUE NOT NULL,
+    display_name    VARCHAR(128),
+    active_vivarium_id  INTEGER,
+    created_at      TIMESTAMPTZ DEFAULT NOW()
+  );
 
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      telegram_id INTEGER UNIQUE NOT NULL,
-      display_name TEXT,
-      active_vivarium_id INTEGER,
-      created_at TEXT DEFAULT (datetime('now'))
-    );
+  CREATE TABLE IF NOT EXISTS vivariums (
+    id              SERIAL PRIMARY KEY,
+    user_id         INTEGER REFERENCES users(id) NOT NULL,
+    name            VARCHAR(64) NOT NULL,
+    token_hash      VARCHAR(128) NOT NULL,
+    version         VARCHAR(16),
+    created_at      TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(user_id, name)
+  );
+`;
 
-    CREATE TABLE IF NOT EXISTS vivariums (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER NOT NULL REFERENCES users(id),
-      name TEXT NOT NULL,
-      token_hash TEXT NOT NULL,
-      status TEXT DEFAULT 'offline',
-      last_seen_at TEXT,
-      version TEXT,
-      created_at TEXT DEFAULT (datetime('now')),
-      UNIQUE(user_id, name)
-    );
-  `);
-
-  return db;
+export async function createPool(databaseUrl: string): Promise<pg.Pool> {
+  const pool = new pg.Pool({ connectionString: databaseUrl });
+  await pool.query(SCHEMA);
+  return pool;
 }

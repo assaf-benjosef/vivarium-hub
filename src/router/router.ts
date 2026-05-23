@@ -12,12 +12,22 @@ interface InFlightMessage {
   typingInterval: ReturnType<typeof setInterval>;
 }
 
+export interface VivariumStatus {
+  online: boolean;
+  appRunning?: boolean;
+  uptime?: number;
+  totalCostUsd?: number;
+  inputTokens?: number;
+}
+
 export class Router {
   private wsServer: WsServer;
   private chatProvider: ChatProvider;
   private users: UserStore;
   private vivariums: VivariumStore;
   private inFlight = new Map<string, InFlightMessage>();
+  private pendingStatus = new Map<string, (status: VivariumStatus) => void>();
+  private userChatIds = new Map<number, number>();
 
   constructor(
     wsServer: WsServer,
@@ -31,14 +41,20 @@ export class Router {
     this.vivariums = vivariums;
   }
 
+  trackChatId(userId: number, chatId: number): void {
+    this.userChatIds.set(userId, chatId);
+  }
+
   async routeUserMessage(telegramId: number, chatId: number, text: string): Promise<void> {
-    const user = this.users.getByTelegramId(telegramId);
+    const user = await this.users.getByTelegramId(telegramId);
     if (!user) {
       await this.chatProvider.sendMessage(chatId, "Something went wrong — I don't recognize your account.");
       return;
     }
 
-    const vivarium = this.vivariums.getActiveForUser(user.id);
+    this.userChatIds.set(user.id, chatId);
+
+    const vivarium = await this.vivariums.getActiveForUser(user.id);
     if (!vivarium) {
       await this.chatProvider.sendMessage(
         chatId,
@@ -49,10 +65,16 @@ export class Router {
 
     const vivariumId = String(vivarium.id);
     if (!this.wsServer.isConnected(vivariumId)) {
-      await this.chatProvider.sendMessage(
-        chatId,
-        "Your vivarium is offline right now. It'll reconnect automatically when the machine comes back up."
+      const others = await this.vivariums.listForUser(user.id);
+      const onlineOthers = others.filter(
+        (v) => v.id !== vivarium.id && this.wsServer.isConnected(String(v.id))
       );
+
+      let msg = `"${vivarium.name}" is offline right now. It'll reconnect automatically when the machine comes back up.`;
+      if (onlineOthers.length > 0) {
+        msg += `\n\nYou have other vivariums online — use /switch <name> to switch. Try /list to see all.`;
+      }
+      await this.chatProvider.sendMessage(chatId, msg);
       return;
     }
 
@@ -85,7 +107,42 @@ export class Router {
     }
   }
 
+  async requestStatus(vivariumId: string): Promise<VivariumStatus> {
+    if (!this.wsServer.isConnected(vivariumId)) {
+      return { online: false };
+    }
+
+    return new Promise<VivariumStatus>((resolve) => {
+      const timeout = setTimeout(() => {
+        this.pendingStatus.delete(vivariumId);
+        resolve({ online: true });
+      }, 3000);
+
+      this.pendingStatus.set(vivariumId, (status) => {
+        clearTimeout(timeout);
+        resolve(status);
+      });
+
+      this.wsServer.sendToVivarium(vivariumId, { type: "health_check" });
+    });
+  }
+
   async handleVivariumEvent(vivariumId: string, msg: VivariumMessage): Promise<void> {
+    if (msg.type === "status") {
+      const resolve = this.pendingStatus.get(vivariumId);
+      if (resolve) {
+        this.pendingStatus.delete(vivariumId);
+        resolve({
+          online: true,
+          appRunning: msg.appRunning,
+          uptime: msg.uptime,
+          totalCostUsd: msg.totalCostUsd,
+          inputTokens: msg.inputTokens,
+        });
+      }
+      return;
+    }
+
     if (msg.type !== "event") return;
 
     const inFlight = this.inFlight.get(msg.msgId);
@@ -111,7 +168,6 @@ export class Router {
           break;
         }
         case "typing":
-          // Typing interval already running — this just confirms vivarium is alive
           break;
         case "done":
           this.clearInFlight(msg.msgId);
@@ -127,29 +183,46 @@ export class Router {
     }
   }
 
-  handleVivariumOnline(vivariumId: string, userId: number): void {
-    const user = this.users.getByTelegramId(userId);
-    if (!user) return;
-
-    const vivarium = this.vivariums.getById(Number(vivariumId));
+  async handleVivariumOnline(vivariumId: string, userId: number): Promise<void> {
+    const vivarium = await this.vivariums.getById(Number(vivariumId));
     if (!vivarium) return;
 
     console.log(`[router] Vivarium "${vivarium.name}" is online (user=${userId})`);
+
+    const chatId = this.userChatIds.get(userId);
+    if (chatId) {
+      await this.chatProvider
+        .sendMessage(chatId, `"${vivarium.name}" is online!`)
+        .catch(() => {});
+    }
   }
 
-  handleVivariumOffline(vivariumId: string, userId: number): void {
-    // Clear any in-flight messages for this vivarium
+  async handleVivariumOffline(vivariumId: string, userId: number): Promise<void> {
+    const vivarium = await this.vivariums.getById(Number(vivariumId));
+    const name = vivarium?.name ?? vivariumId;
+
+    // Clear any in-flight messages for this user
     for (const [msgId, inFlight] of this.inFlight) {
       if (inFlight.userId === userId) {
         this.clearInFlight(msgId);
         this.chatProvider
           .sendMessage(
             inFlight.chatId,
-            "Your vivarium went offline while working on that. It'll reconnect automatically."
+            `"${name}" went offline while working on that. It'll reconnect automatically.`
           )
           .catch(() => {});
       }
     }
+
+    // Notify user if we know their chat ID
+    const chatId = this.userChatIds.get(userId);
+    if (chatId) {
+      await this.chatProvider
+        .sendMessage(chatId, `"${name}" went offline. It'll reconnect automatically when the machine comes back up.`)
+        .catch(() => {});
+    }
+
+    console.log(`[router] Vivarium "${name}" is offline (user=${userId})`);
   }
 
   private clearInFlight(msgId: string): void {

@@ -49,7 +49,7 @@ describe("loadConfig", () => {
 
     expect(config.telegramBotToken).toBe("123:ABC");
     expect(config.jwtSecret).toBe("a".repeat(32));
-    expect(config.dbPath).toBe("./data/hub.db");
+    expect(config.databaseUrl).toBe("postgres://viv:pass@localhost:5432/vivarium");
     expect(config.port).toBe(8080);
     expect(config.allowedUsers).toEqual([]);
   });

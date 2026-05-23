@@ -1,4 +1,4 @@
-import type Database from "better-sqlite3";
+import type pg from "pg";
 
 export interface User {
   id: number;
@@ -9,33 +9,45 @@ export interface User {
 }
 
 export class UserStore {
-  constructor(private db: Database.Database) {}
+  constructor(private pool: pg.Pool) {}
 
-  getOrCreate(telegramId: number, displayName?: string): User {
-    const existing = this.db
-      .prepare("SELECT * FROM users WHERE telegram_id = ?")
-      .get(telegramId) as User | undefined;
+  async getOrCreate(telegramId: number, displayName?: string): Promise<User> {
+    const result = await this.pool.query<User>(
+      `INSERT INTO users (telegram_id, display_name) VALUES ($1, $2)
+       ON CONFLICT (telegram_id) DO NOTHING
+       RETURNING *`,
+      [telegramId, displayName ?? null]
+    );
 
-    if (existing) return existing;
+    if (result.rows[0]) return result.rows[0];
 
-    const result = this.db
-      .prepare("INSERT INTO users (telegram_id, display_name) VALUES (?, ?)")
-      .run(telegramId, displayName ?? null);
-
-    return this.db
-      .prepare("SELECT * FROM users WHERE id = ?")
-      .get(result.lastInsertRowid) as User;
+    const existing = await this.pool.query<User>(
+      "SELECT * FROM users WHERE telegram_id = $1",
+      [telegramId]
+    );
+    return existing.rows[0];
   }
 
-  setActiveVivarium(userId: number, vivariumId: number | null): void {
-    this.db
-      .prepare("UPDATE users SET active_vivarium_id = ? WHERE id = ?")
-      .run(vivariumId, userId);
+  async setActiveVivarium(userId: number, vivariumId: number | null): Promise<void> {
+    await this.pool.query(
+      "UPDATE users SET active_vivarium_id = $1 WHERE id = $2",
+      [vivariumId, userId]
+    );
   }
 
-  getByTelegramId(telegramId: number): User | undefined {
-    return this.db
-      .prepare("SELECT * FROM users WHERE telegram_id = ?")
-      .get(telegramId) as User | undefined;
+  async getById(userId: number): Promise<User | undefined> {
+    const result = await this.pool.query<User>(
+      "SELECT * FROM users WHERE id = $1",
+      [userId]
+    );
+    return result.rows[0];
+  }
+
+  async getByTelegramId(telegramId: number): Promise<User | undefined> {
+    const result = await this.pool.query<User>(
+      "SELECT * FROM users WHERE telegram_id = $1",
+      [telegramId]
+    );
+    return result.rows[0];
   }
 }

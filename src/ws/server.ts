@@ -84,7 +84,6 @@ export class WsServer {
       const conn = this.findConnectionByWs(ws);
       if (conn) {
         this.connections.delete(conn.vivariumId);
-        this.options.vivariums.setStatus(Number(conn.vivariumId), "offline");
         this.options.onDisconnect(conn.vivariumId, conn.userId);
       }
     });
@@ -104,12 +103,12 @@ export class WsServer {
   ): Promise<void> {
     const { userId } = await validateSetupToken(msg.token, this.options.jwtSecret);
 
-    const user = this.options.users.getOrCreate(userId);
+    const user = await this.options.users.getOrCreate(userId);
     const tokenHash = hashToken(msg.token);
-    const vivarium = this.options.vivariums.register(user.id, msg.name, tokenHash, msg.version);
+    const vivarium = await this.options.vivariums.register(user.id, msg.name, tokenHash, msg.version);
 
     if (!user.active_vivarium_id) {
-      this.options.users.setActiveVivarium(user.id, vivarium.id);
+      await this.options.users.setActiveVivarium(user.id, vivarium.id);
     }
 
     const vivariumId = String(vivarium.id);
@@ -157,7 +156,6 @@ export class WsServer {
           console.log(`[ws] Vivarium "${conn.name}" heartbeat timeout, disconnecting`);
           conn.ws.terminate();
           this.connections.delete(id);
-          this.options.vivariums.setStatus(Number(id), "offline");
           this.options.onDisconnect(id, conn.userId);
         } else {
           conn.ws.ping();

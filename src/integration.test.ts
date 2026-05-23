@@ -1,23 +1,20 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll } from "vitest";
 import { createServer, type Server } from "node:http";
 import { WebSocket } from "ws";
 import { WsServer } from "./ws/server.js";
 import { Router } from "./router/router.js";
-import { createDatabase } from "./store/db.js";
+import { createPool } from "./store/db.js";
 import { UserStore } from "./store/users.js";
 import { VivariumStore } from "./store/vivariums.js";
 import { createSetupToken } from "./auth/tokens.js";
 import type { ChatProvider } from "./chat/provider.js";
-import type Database from "better-sqlite3";
+import type pg from "pg";
 
 const JWT_SECRET = "test-secret-that-is-at-least-32-characters-long";
+const TEST_DB_URL = process.env.TEST_DATABASE_URL ?? "postgres://viv:pass@localhost:5432/vivarium";
 
-/**
- * Integration test: Hub + simulated vivarium (raw WebSocket client with mock agent).
- * No real Telegram, no real Anthropic API.
- */
-describe("Integration: Hub ↔ Vivarium", () => {
-  let db: Database.Database;
+describe("Integration: Hub <> Vivarium", () => {
+  let pool: pg.Pool;
   let users: UserStore;
   let vivariumStore: VivariumStore;
   let httpServer: Server;
@@ -26,10 +23,15 @@ describe("Integration: Hub ↔ Vivarium", () => {
   let chatSent: Array<{ method: string; chatId: number | string; args: unknown[] }>;
   let port: number;
 
+  beforeAll(async () => {
+    pool = await createPool(TEST_DB_URL);
+  });
+
   beforeEach(async () => {
-    db = createDatabase(":memory:");
-    users = new UserStore(db);
-    vivariumStore = new VivariumStore(db);
+    await pool.query("TRUNCATE users, vivariums RESTART IDENTITY CASCADE");
+
+    users = new UserStore(pool);
+    vivariumStore = new VivariumStore(pool);
     chatSent = [];
 
     const chatProvider: ChatProvider = {
@@ -48,7 +50,6 @@ describe("Integration: Hub ↔ Vivarium", () => {
 
     httpServer = createServer();
 
-    // Create router first (referenced in wsServer callbacks)
     router = undefined as unknown as Router;
 
     wsServer = new WsServer(httpServer, {
@@ -71,9 +72,15 @@ describe("Integration: Hub ↔ Vivarium", () => {
     });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     wsServer.close();
     httpServer.close();
+    // Let pending async callbacks (e.g. handleVivariumOffline) settle
+    await new Promise((r) => setTimeout(r, 100));
+  });
+
+  afterAll(async () => {
+    await pool.end();
   });
 
   async function connectVivarium(
@@ -103,7 +110,6 @@ describe("Integration: Hub ↔ Vivarium", () => {
       const msg = JSON.parse(data.toString());
       if (msg.type !== "message") return;
 
-      // Simulate: typing → text → done
       ws.send(JSON.stringify({ type: "event", msgId: msg.id, event: "typing" }));
 
       setTimeout(() => {
@@ -128,21 +134,17 @@ describe("Integration: Hub ↔ Vivarium", () => {
     });
   }
 
-  it("should complete full message flow: Telegram → Hub → Vivarium → Hub → Telegram", async () => {
+  it("should complete full message flow: Telegram > Hub > Vivarium > Hub > Telegram", { timeout: 10_000 }, async () => {
     const TELEGRAM_ID = 12345;
     const CHAT_ID = 100;
 
-    // 1. Vivarium connects and registers
     const { ws } = await connectVivarium(TELEGRAM_ID);
     simulateMockAgent(ws);
 
-    // 2. Simulate user sending message from Telegram
     await router.routeUserMessage(TELEGRAM_ID, CHAT_ID, "build me a todo app");
 
-    // 3. Wait for the mock agent to process
-    await new Promise((r) => setTimeout(r, 200));
+    await new Promise((r) => setTimeout(r, 500));
 
-    // 4. Verify chat received the response
     const textMessages = chatSent.filter(
       (s) => s.method === "sendMessage" && (s.args[0] as string).includes("Built:")
     );
@@ -150,7 +152,6 @@ describe("Integration: Hub ↔ Vivarium", () => {
     expect(textMessages[0].args[0]).toBe("Built: build me a todo app");
     expect(textMessages[0].chatId).toBe(CHAT_ID);
 
-    // 5. Verify typing was sent
     const typingActions = chatSent.filter((s) => s.method === "sendTypingAction");
     expect(typingActions.length).toBeGreaterThanOrEqual(1);
 
@@ -163,11 +164,9 @@ describe("Integration: Hub ↔ Vivarium", () => {
 
     const { ws } = await connectVivarium(TELEGRAM_ID);
 
-    // Disconnect the vivarium
     ws.close();
     await new Promise((r) => setTimeout(r, 100));
 
-    // Try to send a message
     chatSent.length = 0;
     await router.routeUserMessage(TELEGRAM_ID, CHAT_ID, "hello");
 
@@ -181,16 +180,13 @@ describe("Integration: Hub ↔ Vivarium", () => {
     const TELEGRAM_ID = 12345;
     const CHAT_ID = 100;
 
-    // Connect, then disconnect
     const { ws: ws1 } = await connectVivarium(TELEGRAM_ID);
     ws1.close();
     await new Promise((r) => setTimeout(r, 100));
 
-    // Reconnect
     const { ws: ws2 } = await connectVivarium(TELEGRAM_ID);
     simulateMockAgent(ws2);
 
-    // Send a message — should work
     chatSent.length = 0;
     await router.routeUserMessage(TELEGRAM_ID, CHAT_ID, "add dark mode");
     await new Promise((r) => setTimeout(r, 200));

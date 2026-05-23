@@ -3,7 +3,7 @@ import { z } from "zod";
 const ConfigSchema = z.object({
   telegramBotToken: z.string().min(1, "TELEGRAM_BOT_TOKEN is required"),
   jwtSecret: z.string().min(32, "JWT_SECRET must be at least 32 characters"),
-  dbPath: z.string().default("./data/hub.db"),
+  databaseUrl: z.string().default("postgres://viv:pass@localhost:5432/vivarium"),
   port: z.number().default(8080),
   allowedUsers: z.array(z.number()).default([]),
 });
@@ -22,7 +22,7 @@ export function loadConfig(): Config {
   return ConfigSchema.parse({
     telegramBotToken: process.env.TELEGRAM_BOT_TOKEN,
     jwtSecret: process.env.JWT_SECRET,
-    dbPath: process.env.DB_PATH || undefined,
+    databaseUrl: process.env.DATABASE_URL || undefined,
     port: process.env.PORT ? Number(process.env.PORT) : undefined,
     allowedUsers,
   });

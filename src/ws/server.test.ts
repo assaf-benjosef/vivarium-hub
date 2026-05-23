@@ -1,15 +1,16 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll } from "vitest";
 import { createServer, type Server } from "node:http";
 import { WebSocket } from "ws";
 import { WsServer } from "./server.js";
-import { createDatabase } from "../store/db.js";
+import { createPool } from "../store/db.js";
 import { UserStore } from "../store/users.js";
 import { VivariumStore } from "../store/vivariums.js";
 import { createSetupToken } from "../auth/tokens.js";
-import type Database from "better-sqlite3";
+import type pg from "pg";
 import type { VivariumMessage } from "./protocol.js";
 
 const JWT_SECRET = "test-secret-that-is-at-least-32-characters-long";
+const TEST_DB_URL = process.env.TEST_DATABASE_URL ?? "postgres://viv:pass@localhost:5432/vivarium";
 
 function waitForOpen(ws: WebSocket): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -35,9 +36,9 @@ function waitForClose(ws: WebSocket): Promise<{ code: number; reason: string }> 
 }
 
 describe("WsServer", () => {
+  let pool: pg.Pool;
   let httpServer: Server;
   let wsServer: WsServer;
-  let db: Database.Database;
   let users: UserStore;
   let vivariums: VivariumStore;
   let port: number;
@@ -45,10 +46,15 @@ describe("WsServer", () => {
   let connectedIds: string[];
   let disconnectedIds: string[];
 
+  beforeAll(async () => {
+    pool = await createPool(TEST_DB_URL);
+  });
+
   beforeEach(async () => {
-    db = createDatabase(":memory:");
-    users = new UserStore(db);
-    vivariums = new VivariumStore(db);
+    await pool.query("TRUNCATE users, vivariums RESTART IDENTITY CASCADE");
+
+    users = new UserStore(pool);
+    vivariums = new VivariumStore(pool);
     receivedMessages = [];
     connectedIds = [];
     disconnectedIds = [];
@@ -75,6 +81,10 @@ describe("WsServer", () => {
   afterEach(() => {
     wsServer.close();
     httpServer.close();
+  });
+
+  afterAll(async () => {
+    await pool.end();
   });
 
   async function connectAndRegister(userId = 12345, name = "test-viv"): Promise<WebSocket> {
@@ -112,7 +122,6 @@ describe("WsServer", () => {
     await waitForOpen(ws);
 
     const closePromise = waitForClose(ws);
-    // Don't send register — wait for timeout
     const { code } = await closePromise;
     expect(code).toBe(4001);
   }, 15_000);
@@ -132,7 +141,6 @@ describe("WsServer", () => {
 
     ws.send(JSON.stringify({ type: "event", msgId: "msg_1", event: "text", content: "hello" }));
 
-    // Give it a moment to process
     await new Promise((r) => setTimeout(r, 50));
 
     expect(receivedMessages).toHaveLength(1);
@@ -189,7 +197,6 @@ describe("WsServer", () => {
     const ws1 = await connectAndRegister(12345, "my-viv");
     const ws2 = await connectAndRegister(12345, "my-viv");
 
-    // ws1 should have been closed
     await new Promise((r) => setTimeout(r, 50));
 
     expect(ws1.readyState).toBe(WebSocket.CLOSED);
@@ -213,14 +220,13 @@ describe("WsServer", () => {
   it("should create user and vivarium records in store", async () => {
     const ws = await connectAndRegister(12345, "my-app");
 
-    const user = users.getByTelegramId(12345);
+    const user = await users.getByTelegramId(12345);
     expect(user).toBeDefined();
     expect(user!.active_vivarium_id).not.toBeNull();
 
-    const vivList = vivariums.listForUser(user!.id);
+    const vivList = await vivariums.listForUser(user!.id);
     expect(vivList).toHaveLength(1);
     expect(vivList[0].name).toBe("my-app");
-    expect(vivList[0].status).toBe("online");
 
     ws.close();
   });

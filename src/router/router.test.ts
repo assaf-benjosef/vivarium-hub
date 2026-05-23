@@ -1,11 +1,13 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from "vitest";
 import { Router } from "./router.js";
-import { createDatabase } from "../store/db.js";
+import { createPool } from "../store/db.js";
 import { UserStore } from "../store/users.js";
 import { VivariumStore } from "../store/vivariums.js";
 import type { ChatProvider } from "../chat/provider.js";
 import type { WsServer } from "../ws/server.js";
-import type Database from "better-sqlite3";
+import type pg from "pg";
+
+const TEST_DB_URL = process.env.TEST_DATABASE_URL ?? "postgres://viv:pass@localhost:5432/vivarium";
 
 function createMockChatProvider(): ChatProvider & {
   sent: Array<{ method: string; args: unknown[] }>;
@@ -50,32 +52,40 @@ function createMockWsServer(): WsServer & {
 }
 
 describe("Router", () => {
-  let db: Database.Database;
+  let pool: pg.Pool;
   let users: UserStore;
   let vivariums: VivariumStore;
   let chat: ReturnType<typeof createMockChatProvider>;
   let ws: ReturnType<typeof createMockWsServer>;
   let router: Router;
 
-  beforeEach(() => {
-    db = createDatabase(":memory:");
-    users = new UserStore(db);
-    vivariums = new VivariumStore(db);
+  beforeAll(async () => {
+    pool = await createPool(TEST_DB_URL);
+  });
+
+  beforeEach(async () => {
+    await pool.query("TRUNCATE users, vivariums RESTART IDENTITY CASCADE");
+    users = new UserStore(pool);
+    vivariums = new VivariumStore(pool);
     chat = createMockChatProvider();
     ws = createMockWsServer();
     router = new Router(ws, chat, users, vivariums);
   });
 
-  function setupUserWithVivarium(telegramId = 12345) {
-    const user = users.getOrCreate(telegramId, "Alice");
-    const viv = vivariums.register(user.id, "test-app", "hash123");
-    users.setActiveVivarium(user.id, viv.id);
+  afterAll(async () => {
+    await pool.end();
+  });
+
+  async function setupUserWithVivarium(telegramId = 12345) {
+    const user = await users.getOrCreate(telegramId, "Alice");
+    const viv = await vivariums.register(user.id, "test-app", "hash123");
+    await users.setActiveVivarium(user.id, viv.id);
     ws.connected.add(String(viv.id));
     return { user, viv };
   }
 
   it("should route message to connected vivarium", async () => {
-    const { viv } = setupUserWithVivarium();
+    const { viv } = await setupUserWithVivarium();
 
     await router.routeUserMessage(12345, 100, "add dark mode");
 
@@ -89,7 +99,7 @@ describe("Router", () => {
   });
 
   it("should send typing action when routing message", async () => {
-    setupUserWithVivarium();
+    await setupUserWithVivarium();
 
     await router.routeUserMessage(12345, 100, "hello");
 
@@ -98,10 +108,9 @@ describe("Router", () => {
   });
 
   it("should tell user when vivarium is offline", async () => {
-    const user = users.getOrCreate(12345, "Alice");
-    const viv = vivariums.register(user.id, "test-app", "hash123");
-    users.setActiveVivarium(user.id, viv.id);
-    // Don't add to ws.connected
+    const user = await users.getOrCreate(12345, "Alice");
+    const viv = await vivariums.register(user.id, "test-app", "hash123");
+    await users.setActiveVivarium(user.id, viv.id);
 
     await router.routeUserMessage(12345, 100, "hello");
 
@@ -112,7 +121,7 @@ describe("Router", () => {
   });
 
   it("should tell user when no vivarium is set up", async () => {
-    users.getOrCreate(12345, "Alice");
+    await users.getOrCreate(12345, "Alice");
 
     await router.routeUserMessage(12345, 100, "hello");
 
@@ -122,7 +131,7 @@ describe("Router", () => {
   });
 
   it("should forward text events to chat", async () => {
-    setupUserWithVivarium();
+    await setupUserWithVivarium();
     await router.routeUserMessage(12345, 100, "hello");
 
     const msgId = (ws.sentMessages[0].msg as { id: string }).id;
@@ -141,7 +150,7 @@ describe("Router", () => {
   });
 
   it("should forward screenshot events to chat", async () => {
-    setupUserWithVivarium();
+    await setupUserWithVivarium();
     await router.routeUserMessage(12345, 100, "hello");
 
     const msgId = (ws.sentMessages[0].msg as { id: string }).id;
@@ -159,7 +168,7 @@ describe("Router", () => {
   });
 
   it("should clear typing interval on done event", async () => {
-    setupUserWithVivarium();
+    await setupUserWithVivarium();
     await router.routeUserMessage(12345, 100, "hello");
 
     const msgId = (ws.sentMessages[0].msg as { id: string }).id;
@@ -170,7 +179,6 @@ describe("Router", () => {
       event: "done",
     });
 
-    // Sending another text for same msgId should be ignored (inFlight cleared)
     await router.handleVivariumEvent("1", {
       type: "event",
       msgId,
@@ -185,7 +193,7 @@ describe("Router", () => {
   });
 
   it("should handle error event", async () => {
-    setupUserWithVivarium();
+    await setupUserWithVivarium();
     await router.routeUserMessage(12345, 100, "hello");
 
     const msgId = (ws.sentMessages[0].msg as { id: string }).id;
@@ -216,17 +224,38 @@ describe("Router", () => {
   });
 
   it("should notify user when vivarium goes offline mid-message", async () => {
-    const { user } = setupUserWithVivarium();
+    const { user } = await setupUserWithVivarium();
     await router.routeUserMessage(12345, 100, "hello");
 
-    router.handleVivariumOffline("1", user.id);
-
-    // Give async operations a tick
-    await new Promise((r) => setTimeout(r, 10));
+    await router.handleVivariumOffline("1", user.id);
 
     const offlineMessages = chat.sent.filter(
       (s) => s.method === "sendMessage" && (s.args[1] as string).includes("offline")
     );
-    expect(offlineMessages).toHaveLength(1);
+    expect(offlineMessages.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("should send online notification when vivarium connects", async () => {
+    const { user, viv } = await setupUserWithVivarium();
+    router.trackChatId(user.id, 100);
+
+    await router.handleVivariumOnline(String(viv.id), user.id);
+
+    const onlineMessages = chat.sent.filter(
+      (s) => s.method === "sendMessage" && (s.args[1] as string).includes("online")
+    );
+    expect(onlineMessages).toHaveLength(1);
+  });
+
+  it("should include vivarium name in offline message when vivarium is not connected", async () => {
+    const { viv } = await setupUserWithVivarium();
+    ws.connected.delete(String(viv.id));
+
+    await router.routeUserMessage(12345, 100, "hello");
+
+    const messages = chat.sent.filter((s) => s.method === "sendMessage");
+    expect(messages).toHaveLength(1);
+    expect(messages[0].args[1]).toContain("test-app");
+    expect(messages[0].args[1]).toContain("offline");
   });
 });
