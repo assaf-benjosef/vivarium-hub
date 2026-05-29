@@ -23,7 +23,7 @@ services:
       POSTGRES_PASSWORD: pass
       POSTGRES_DB: vivarium
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U viv"]
+      test: ["CMD-SHELL", "pg_isready -U viv -d vivarium"]
       interval: 2s
       timeout: 5s
       retries: 5

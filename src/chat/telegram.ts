@@ -143,10 +143,12 @@ export class TelegramChat implements ChatProvider {
 
     await ctx.reply(
       "Run this on your machine (Mac or Linux):\n\n" +
-        `curl -sSL https://vivarium.dev/setup | sh -s -- --token ${token}\n\n` +
-        "It'll install smolvm (if needed), download your vivarium, and ask for your Anthropic API key.\n" +
+        `curl -sSL https://vivarium.run/setup | sh -s -- --token ${token}\n\n` +
+        "Or if you have the vivarium repo locally:\n\n" +
+        `cd vivarium && ./scripts/setup.sh --token ${token}\n\n` +
+        "It'll ask for your Anthropic API key and set everything up.\n" +
         "Your key stays on YOUR machine — I never see it.\n\n" +
-        "Already have Docker? Add --docker to the command."
+        "Add --smolvm to use SmolVM instead of Docker."
     );
   }
 
