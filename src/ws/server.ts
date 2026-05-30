@@ -79,15 +79,12 @@ export class WsServer {
       }
     });
 
-    ws.on("close", (code, reason) => {
+    ws.on("close", () => {
       clearTimeout(timeout);
       const conn = this.findConnectionByWs(ws);
       if (conn) {
-        console.log(`[ws] Connection closed for "${conn.name}" (code=${code}, reason=${reason})`);
         this.connections.delete(conn.vivariumId);
         this.options.onDisconnect(conn.vivariumId, conn.userId);
-      } else {
-        console.log(`[ws] Unregistered connection closed (code=${code}, reason=${reason})`);
       }
     });
 
@@ -116,10 +113,11 @@ export class WsServer {
 
     const vivariumId = String(vivarium.id);
 
+    // Don't close/terminate the old socket — SmolVM's TSI networking delivers
+    // the TCP RST to other connections from the same guest, causing a cascade.
+    // The orphaned socket will be cleaned up by the heartbeat timeout.
     const existing = this.connections.get(vivariumId);
     if (existing) {
-      console.log(`[ws] Replacing existing connection for "${msg.name}" (id=${vivariumId})`);
-      existing.ws.close(4006, "Replaced by new connection");
       this.connections.delete(vivariumId);
     }
 
