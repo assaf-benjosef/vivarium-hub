@@ -5,6 +5,7 @@ import { validateSetupToken, hashToken } from "../auth/tokens.js";
 import { UserStore } from "../store/users.js";
 import { VivariumStore } from "../store/vivariums.js";
 import type { VivariumConnection } from "./connection.js";
+import { log } from "../util/log.js";
 
 const REGISTRATION_TIMEOUT_MS = 10_000;
 const HEARTBEAT_INTERVAL_MS = 30_000;
@@ -138,7 +139,7 @@ export class WsServer {
     const response: HubMessage = { type: "registered", vivariumId };
     ws.send(JSON.stringify(response));
 
-    console.log(`[ws] Vivarium "${msg.name}" registered (id=${vivariumId}, userId=${user.id})`);
+    log.info("ws", `Vivarium "${msg.name}" registered (id=${vivariumId}, userId=${user.id})`);
     this.options.onConnect(vivariumId, user.id);
   }
 
@@ -154,7 +155,7 @@ export class WsServer {
       const now = Date.now();
       for (const [id, conn] of this.connections) {
         if (now - conn.lastPongAt.getTime() > HEARTBEAT_TIMEOUT_MS) {
-          console.log(`[ws] Vivarium "${conn.name}" heartbeat timeout, disconnecting`);
+          log.info("ws", `Vivarium "${conn.name}" heartbeat timeout, disconnecting`);
           conn.ws.terminate();
           this.connections.delete(id);
           this.options.onDisconnect(id, conn.userId);

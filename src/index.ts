@@ -7,6 +7,7 @@ import { VivariumStore } from "./store/vivariums.js";
 import { WsServer } from "./ws/server.js";
 import { Router } from "./router/router.js";
 import { TelegramChat } from "./chat/telegram.js";
+import { log } from "./util/log.js";
 
 async function main() {
   const config = loadConfig();
@@ -19,7 +20,7 @@ async function main() {
   app.get("/health", async () => ({ ok: true }));
 
   await app.listen({ port: config.port, host: "0.0.0.0" });
-  console.log(`[hub] HTTP server listening on :${config.port}`);
+  log.info("hub", `HTTP server listening on :${config.port}`);
 
   const chatProvider = new TelegramChat(config, users, vivariumStore);
 
@@ -39,10 +40,10 @@ async function main() {
   chatProvider.setWsServer(wsServer);
 
   await chatProvider.start();
-  console.log("[hub] Vivarium Hub is ready 🌱");
+  log.info("hub", "Vivarium Hub is ready");
 }
 
 main().catch((err) => {
-  console.error("[hub] Fatal error:", err);
+  log.error("hub", "Fatal error:", err);
   process.exit(1);
 });

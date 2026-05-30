@@ -6,6 +6,7 @@ import type { VivariumStore } from "../store/vivariums.js";
 import type { UserStore } from "../store/users.js";
 import type { WsServer } from "../ws/server.js";
 import { createSetupToken } from "../auth/tokens.js";
+import { log } from "../util/log.js";
 
 export class TelegramChat implements ChatProvider {
   private bot: Bot;
@@ -294,7 +295,7 @@ export class TelegramChat implements ChatProvider {
   async start(): Promise<void> {
     await this.bot.start({
       onStart: () => {
-        console.log("[telegram] Bot is running");
+        log.info("telegram", "Bot is running");
       },
     });
   }

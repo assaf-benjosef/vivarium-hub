@@ -5,6 +5,7 @@ import type { ChatProvider } from "../chat/provider.js";
 import type { UserStore } from "../store/users.js";
 import type { VivariumStore } from "../store/vivariums.js";
 import { splitMessage } from "../util/split-message.js";
+import { log } from "../util/log.js";
 
 interface InFlightMessage {
   chatId: number;
@@ -148,7 +149,7 @@ export class Router {
 
     const inFlight = this.inFlight.get(msg.msgId);
     if (!inFlight) {
-      console.warn(`[router] Unknown msgId: ${msg.msgId}`);
+      log.info("router", `Unknown msgId: ${msg.msgId}`);
       return;
     }
 
@@ -176,11 +177,11 @@ export class Router {
         case "error":
           this.clearInFlight(msg.msgId);
           await this.chatProvider.sendMessage(chatId, "Something went wrong on my end. Try again?");
-          console.error(`[router] Vivarium error for ${msg.msgId}: ${msg.message}`);
+          log.error("router", `Vivarium error for ${msg.msgId}: ${msg.message}`);
           break;
       }
     } catch (err) {
-      console.error(`[router] Error handling event for ${msg.msgId}:`, err);
+      log.error("router", `Error handling event for ${msg.msgId}:`, err);
     }
   }
 
@@ -188,7 +189,7 @@ export class Router {
     const vivarium = await this.vivariums.getById(Number(vivariumId));
     if (!vivarium) return;
 
-    console.log(`[router] Vivarium "${vivarium.name}" is online (user=${userId})`);
+    log.info("router", `Vivarium "${vivarium.name}" is online (user=${userId})`);
 
     const now = Date.now();
     const lastNotify = this.lastOnlineNotify.get(vivariumId) ?? 0;
@@ -228,7 +229,7 @@ export class Router {
         .catch(() => {});
     }
 
-    console.log(`[router] Vivarium "${name}" is offline (user=${userId})`);
+    log.info("router", `Vivarium "${name}" is offline (user=${userId})`);
   }
 
   private clearInFlight(msgId: string): void {
