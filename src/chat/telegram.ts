@@ -140,7 +140,8 @@ export class TelegramChat implements ChatProvider {
     ctx: { reply: (text: string) => Promise<unknown> },
     telegramId: number
   ): Promise<void> {
-    const token = await createSetupToken(telegramId, this.config.jwtSecret);
+    const user = await this.users.getOrCreate(telegramId);
+    const token = await createSetupToken(user.id, this.config.jwtSecret);
 
     await ctx.reply(
       "Run this on your machine (Mac or Linux):\n\n" +

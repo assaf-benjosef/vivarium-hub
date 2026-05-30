@@ -7,7 +7,8 @@ pg.types.setTypeParser(20, (val) => parseInt(val, 10));
 const SCHEMA = `
   CREATE TABLE IF NOT EXISTS users (
     id              SERIAL PRIMARY KEY,
-    telegram_id     BIGINT UNIQUE NOT NULL,
+    telegram_id     BIGINT UNIQUE,
+    email           VARCHAR(256) UNIQUE,
     display_name    VARCHAR(128),
     active_vivarium_id  INTEGER,
     created_at      TIMESTAMPTZ DEFAULT NOW()

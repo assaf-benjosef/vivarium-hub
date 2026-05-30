@@ -26,9 +26,9 @@ export class WsServer {
   private heartbeatInterval: ReturnType<typeof setInterval> | null = null;
   private options: WsServerOptions;
 
-  constructor(server: Server, options: WsServerOptions) {
+  constructor(options: WsServerOptions) {
     this.options = options;
-    this.wss = new WebSocketServer({ server, path: "/ws" });
+    this.wss = new WebSocketServer({ noServer: true });
     this.wss.on("connection", (ws) => this.handleConnection(ws));
     this.startHeartbeat();
   }
@@ -104,7 +104,10 @@ export class WsServer {
   ): Promise<void> {
     const { userId } = await validateSetupToken(msg.token, this.options.jwtSecret);
 
-    const user = await this.options.users.getOrCreate(userId);
+    const user = await this.options.users.getById(userId);
+    if (!user) {
+      throw new Error("Unknown user");
+    }
     const tokenHash = hashToken(msg.token);
     const vivarium = await this.options.vivariums.register(user.id, msg.name, tokenHash, msg.version);
 
@@ -166,6 +169,12 @@ export class WsServer {
     }, HEARTBEAT_INTERVAL_MS);
   }
 
+  handleUpgrade(request: import("node:http").IncomingMessage, socket: import("node:stream").Duplex, head: Buffer): void {
+    this.wss.handleUpgrade(request, socket, head, (ws) => {
+      this.wss.emit("connection", ws, request);
+    });
+  }
+
   sendToVivarium(vivariumId: string, msg: HubMessage): boolean {
     const conn = this.connections.get(vivariumId);
     if (!conn || conn.ws.readyState !== WebSocket.OPEN) {
@@ -178,6 +187,24 @@ export class WsServer {
   isConnected(vivariumId: string): boolean {
     const conn = this.connections.get(vivariumId);
     return !!conn && conn.ws.readyState === WebSocket.OPEN;
+  }
+
+  getConnectedVivariums(): Array<{
+    vivariumId: string;
+    userId: number;
+    name: string;
+    version: string;
+    connectedAt: Date;
+  }> {
+    return Array.from(this.connections.values())
+      .filter((conn) => conn.ws.readyState === WebSocket.OPEN)
+      .map(({ vivariumId, userId, name, version, connectedAt }) => ({
+        vivariumId,
+        userId,
+        name,
+        version,
+        connectedAt,
+      }));
   }
 
   getConnection(vivariumId: string): VivariumConnection | undefined {

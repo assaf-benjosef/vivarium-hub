@@ -60,13 +60,17 @@ describe("WsServer", () => {
     disconnectedIds = [];
 
     httpServer = createServer();
-    wsServer = new WsServer(httpServer, {
+    wsServer = new WsServer({
       jwtSecret: JWT_SECRET,
       users,
       vivariums,
-      onMessage: (vivariumId, msg) => receivedMessages.push({ vivariumId, msg }),
-      onConnect: (vivariumId) => connectedIds.push(vivariumId),
-      onDisconnect: (vivariumId) => disconnectedIds.push(vivariumId),
+      onMessage: (vivariumId: string, msg: any) => receivedMessages.push({ vivariumId, msg }),
+      onConnect: (vivariumId: string, _userId: number) => connectedIds.push(vivariumId),
+      onDisconnect: (vivariumId: string, _userId: number) => disconnectedIds.push(vivariumId),
+    });
+
+    httpServer.on("upgrade", (req, socket, head) => {
+      wsServer.handleUpgrade(req, socket, head);
     });
 
     await new Promise<void>((resolve) => {
@@ -87,8 +91,9 @@ describe("WsServer", () => {
     await pool.end();
   });
 
-  async function connectAndRegister(userId = 12345, name = "test-viv"): Promise<WebSocket> {
-    const token = await createSetupToken(userId, JWT_SECRET);
+  async function connectAndRegister(telegramId = 12345, name = "test-viv"): Promise<WebSocket> {
+    const user = await users.getOrCreate(telegramId);
+    const token = await createSetupToken(user.id, JWT_SECRET);
     const ws = new WebSocket(`ws://localhost:${port}/ws`);
     await waitForOpen(ws);
 

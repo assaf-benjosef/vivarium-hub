@@ -66,6 +66,13 @@ export class VivariumStore {
     return result.rows;
   }
 
+  async listAll(): Promise<Vivarium[]> {
+    const result = await this.pool.query<Vivarium>(
+      "SELECT * FROM vivariums ORDER BY name"
+    );
+    return result.rows;
+  }
+
   async delete(vivariumId: number): Promise<void> {
     await this.pool.query("DELETE FROM vivariums WHERE id = $1", [vivariumId]);
   }

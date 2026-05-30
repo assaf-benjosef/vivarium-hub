@@ -52,16 +52,20 @@ describe("Integration: Hub <> Vivarium", () => {
 
     router = undefined as unknown as Router;
 
-    wsServer = new WsServer(httpServer, {
+    wsServer = new WsServer({
       jwtSecret: JWT_SECRET,
       users,
       vivariums: vivariumStore,
-      onMessage: (vivariumId, msg) => router.handleVivariumEvent(vivariumId, msg),
-      onConnect: (vivariumId, userId) => router.handleVivariumOnline(vivariumId, userId),
-      onDisconnect: (vivariumId, userId) => router.handleVivariumOffline(vivariumId, userId),
+      onMessage: (vivariumId: string, msg: any) => router.handleVivariumEvent(vivariumId, msg),
+      onConnect: (vivariumId: string, userId: number) => router.handleVivariumOnline(vivariumId, userId),
+      onDisconnect: (vivariumId: string, userId: number) => router.handleVivariumOffline(vivariumId, userId),
     });
 
     router = new Router(wsServer, chatProvider, users, vivariumStore);
+
+    httpServer.on("upgrade", (req, socket, head) => {
+      wsServer.handleUpgrade(req, socket, head);
+    });
 
     await new Promise<void>((resolve) => {
       httpServer.listen(0, () => {
@@ -87,7 +91,8 @@ describe("Integration: Hub <> Vivarium", () => {
     telegramUserId: number,
     name = "test-viv"
   ): Promise<{ ws: WebSocket; vivariumId: string }> {
-    const token = await createSetupToken(telegramUserId, JWT_SECRET);
+    const user = await users.getOrCreate(telegramUserId);
+    const token = await createSetupToken(user.id, JWT_SECRET);
     const ws = new WebSocket(`ws://localhost:${port}/ws`);
 
     await new Promise<void>((resolve, reject) => {
