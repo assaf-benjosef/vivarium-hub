@@ -28,6 +28,7 @@ export class Router {
   private inFlight = new Map<string, InFlightMessage>();
   private pendingStatus = new Map<string, (status: VivariumStatus) => void>();
   private userChatIds = new Map<number, number>();
+  private lastOnlineNotify = new Map<string, number>();
 
   constructor(
     wsServer: WsServer,
@@ -188,6 +189,11 @@ export class Router {
     if (!vivarium) return;
 
     console.log(`[router] Vivarium "${vivarium.name}" is online (user=${userId})`);
+
+    const now = Date.now();
+    const lastNotify = this.lastOnlineNotify.get(vivariumId) ?? 0;
+    if (now - lastNotify < 60_000) return;
+    this.lastOnlineNotify.set(vivariumId, now);
 
     const chatId = this.userChatIds.get(userId);
     if (chatId) {
