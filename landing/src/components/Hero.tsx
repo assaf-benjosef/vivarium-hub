@@ -60,9 +60,9 @@ export function Hero() {
             maxWidth: 560,
           }}
         >
-          Vivarium is an always-on AI agent that lives in its own tiny VM. Spin
-          one up per project — message it from your phone, and it builds and
-          tends your app while you do anything else.
+          Vivarium is an AI agent that lives inside your app's runtime — same
+          VM, same filesystem, always on. Install it with one command, message
+          it from your phone, and it builds while you do anything else.
         </p>
         <div style={{ marginTop: 30 }}>
           <WaitlistForm />

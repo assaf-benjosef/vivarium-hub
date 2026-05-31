@@ -3,8 +3,8 @@ import { Icon } from "./Icon";
 const FEATS: [string, string, string][] = [
   [
     "pulse",
-    "Always on",
-    "It doesn’t stop when you close the laptop. The VM keeps running, ready for the next message.",
+    "Lives with your app",
+    "The agent shares the app’s VM — same filesystem, same process, same network. It doesn’t remote in; it’s already there.",
   ],
   [
     "git",
@@ -18,8 +18,8 @@ const FEATS: [string, string, string][] = [
   ],
   [
     "bolt",
-    "Runs anywhere",
-    "Spin it up on any server — a lightweight VM or a container. One command and it's alive.",
+    "One command, your server",
+    "Install it anywhere you have a machine — your VPS, your homelab, any cloud. One command and it's alive.",
   ],
   [
     "clock",

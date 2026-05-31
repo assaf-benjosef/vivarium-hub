@@ -155,7 +155,7 @@ export function HowItWorks() {
             icon="cpu"
             kicker="03 · VIVARIUM"
             title="The agent builds"
-            desc="A persistent AI agent writes code, runs the app, screenshots it, and auto-saves to git."
+            desc="It lives inside the app's runtime — full access to the filesystem, the running process, and the browser. It writes, runs, and verifies in one place."
           />
         </div>
         {/* VM internals strip */}
