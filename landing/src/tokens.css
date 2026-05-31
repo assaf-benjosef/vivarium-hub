@@ -123,9 +123,12 @@ html, body {
   .lp-flowline { display: none !important; }
   .lp-tg-grid { grid-template-columns: 1fr !important; gap: 38px !important; }
   .lp-feat-grid { grid-template-columns: 1fr 1fr !important; }
-  .lp-shelf { flex-wrap: wrap !important; gap: 26px 20px !important; }
+  .lp-shelf { flex-wrap: wrap !important; gap: 20px 16px !important; justify-content: center !important; }
+  .lp-shelf .jar-wrap { transform: scale(0.7) !important; margin: -20px -10px !important; }
   .lp-shelf-board { display: none !important; }
   .lp-footer-grid { grid-template-columns: 1fr 1fr !important; gap: 30px !important; }
+  .lp-console-frame { overflow-x: auto !important; }
+  .lp-console-inner { transform: scale(0.55) !important; transform-origin: top left !important; width: 182% !important; }
 }
 
 @media (max-width: 560px) {
@@ -135,6 +138,8 @@ html, body {
   .lp-section-inner { padding: 0 22px !important; }
   .lp-waitlist { width: 100% !important; }
   .lp-nav { padding: 18px 22px !important; }
+  .lp-shelf .jar-wrap { transform: scale(0.55) !important; margin: -30px -16px !important; }
+  .lp-console-inner { transform: scale(0.42) !important; width: 238% !important; }
 }
 
 @media (prefers-reduced-motion: reduce) {

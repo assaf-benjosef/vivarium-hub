@@ -226,8 +226,10 @@ export function ConsoleTieIn() {
             </div>
           </div>
           {/* scaled console */}
-          <div style={{ height: 400, overflow: "hidden" }}>
-            <MiniConsole />
+          <div className="lp-console-frame" style={{ height: 400, overflow: "hidden" }}>
+            <div className="lp-console-inner">
+              <MiniConsole />
+            </div>
           </div>
         </div>
       </div>

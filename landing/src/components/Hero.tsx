@@ -84,7 +84,7 @@ export function Hero() {
         }}
       >
         {SPECIMENS.map((s, i) => (
-          <div key={i}>
+          <div key={i} className="jar-wrap">
             <Jar
               state={s.state}
               w={184}
