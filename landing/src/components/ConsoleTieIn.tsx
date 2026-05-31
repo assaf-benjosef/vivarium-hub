@@ -14,23 +14,23 @@ function MiniFleetRow({
   return (
     <div
       style={{
-        display: "grid",
-        gridTemplateColumns: "140px 140px 1fr",
-        gap: 16,
-        padding: "12px 20px",
+        display: "flex",
+        gap: 12,
+        padding: "12px 16px",
         borderBottom: "1px solid var(--line)",
         fontSize: 13,
         alignItems: "center",
+        overflow: "hidden",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flex: "0 0 auto" }}>
         <PulseDot state={state} size={7} />
         <span style={{ fontFamily: "var(--font-mono)", fontWeight: 600, color: "var(--hi)" }}>
           {name}
         </span>
       </div>
-      <span style={{ color: "var(--mid)", fontFamily: "var(--font-mono)", fontSize: 12 }}>{app}</span>
-      <span style={{ color: "var(--dim)", fontSize: 12.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+      <span style={{ color: "var(--mid)", fontFamily: "var(--font-mono)", fontSize: 12, flex: "0 0 auto" }}>{app}</span>
+      <span style={{ color: "var(--dim)", fontSize: 12.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, minWidth: 0 }}>
         {task}
       </span>
     </div>
@@ -47,12 +47,15 @@ function MiniConsole() {
         fontFamily: "var(--font-ui)",
         color: "var(--hi)",
         display: "flex",
+        overflow: "hidden",
       }}
     >
-      {/* Mini rail */}
+      {/* Mini rail — hidden on narrow screens via min-width */}
       <div
+        className="lp-console-rail"
         style={{
           width: 200,
+          minWidth: 200,
           borderRight: "1px solid var(--line)",
           padding: "20px 14px",
           display: "flex",
@@ -132,10 +135,9 @@ function MiniConsole() {
         >
           <div
             style={{
-              display: "grid",
-              gridTemplateColumns: "140px 140px 1fr",
-              gap: 16,
-              padding: "10px 20px",
+              display: "flex",
+              gap: 12,
+              padding: "10px 16px",
               fontSize: 11,
               fontFamily: "var(--font-mono)",
               color: "var(--dim)",
@@ -146,8 +148,8 @@ function MiniConsole() {
             }}
           >
             <span>VIVARIUM</span>
-            <span>APP</span>
-            <span>TASK</span>
+            <span style={{ marginLeft: 28 }}>APP</span>
+            <span style={{ marginLeft: "auto" }}>TASK</span>
           </div>
           <MiniFleetRow name="fern" state="working" app="recipe-box" task="Adding image upload to recipe form" />
           <MiniFleetRow name="moss" state="idle" app="standup-bot" task="Idle — awaiting next message" />
@@ -227,9 +229,7 @@ export function ConsoleTieIn() {
           </div>
           {/* scaled console */}
           <div className="lp-console-frame" style={{ height: 400, overflow: "hidden" }}>
-            <div className="lp-console-inner">
-              <MiniConsole />
-            </div>
+            <MiniConsole />
           </div>
         </div>
       </div>
