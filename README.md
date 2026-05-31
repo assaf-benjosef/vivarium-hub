@@ -12,7 +12,7 @@ Message broker and web console for [Vivarium](https://github.com/assaf-benjosef/
 │  WebSocket server (ws)                  │
 │  HTTP API (Fastify)                     │
 │  Web console (React 19 + Vite)          │
-│  SQLite (users, vivariums, state)       │
+│  PostgreSQL (users, vivariums, state)    │
 │  Google OAuth                           │
 │                                         │
 │  Routes messages. Never sees API keys.  │
@@ -34,7 +34,8 @@ Message broker and web console for [Vivarium](https://github.com/assaf-benjosef/
 - **Chat integration** (`src/chat/`) — Telegram bot via grammY
 - **HTTP API** (`src/api/`) — REST endpoints for the web console
 - **Router** (`src/router/`) — routes incoming chat messages to the correct vivarium
-- **Store** (`src/store/`) — SQLite persistence (users, vivariums, message history)
+- **Store** (`src/store/`) — PostgreSQL persistence (users, vivariums)
+- **Migrations** (`migrations/`) — versioned SQL files applied on startup via node-pg-migrate
 - **Auth** (`src/auth/`) — Google OAuth + JWT for the web console
 
 ### Web Console (`web/`)
@@ -56,20 +57,29 @@ Static marketing site deployed to [vivarium.run](https://vivarium.run). Vite + R
 npm install
 npm run build
 
+DATABASE_URL=postgres://viv:pass@localhost:5432/vivarium \
 TELEGRAM_BOT_TOKEN=123:ABC... \
 JWT_SECRET=$(openssl rand -hex 32) \
 node dist/index.js
 ```
 
+Migrations run automatically on startup — no manual setup needed.
+
 ### Docker
+
+```bash
+docker compose up -d
+```
+
+Or manually:
 
 ```bash
 docker build -t vivarium-hub .
 
 docker run -d \
+  -e DATABASE_URL=postgres://viv:pass@localhost:5432/vivarium \
   -e TELEGRAM_BOT_TOKEN=123:ABC... \
   -e JWT_SECRET=$(openssl rand -hex 32) \
-  -v hub-data:/app/data \
   -p 8080:8080 \
   vivarium-hub
 ```
@@ -80,7 +90,7 @@ docker run -d \
 |---|---|---|
 | `TELEGRAM_BOT_TOKEN` | ✅ | Telegram bot token from BotFather |
 | `JWT_SECRET` | ✅ | Secret for signing tokens (min 32 chars) |
-| `DB_PATH` | | SQLite path (default: `./data/hub.db`) |
+| `DATABASE_URL` | | PostgreSQL connection string (default: `postgres://viv:pass@localhost:5432/vivarium`) |
 | `PORT` | | HTTP/WebSocket port (default: `8080`) |
 | `ALLOWED_USERS` | | Comma-separated Telegram user IDs |
 | `GOOGLE_CLIENT_ID` | | For web console OAuth |
@@ -100,6 +110,18 @@ cd web && npm run dev
 
 # Landing page
 cd landing && npm run dev
+```
+
+## Database migrations
+
+Migrations live in `migrations/` and run automatically on startup via [node-pg-migrate](https://github.com/salsita/node-pg-migrate).
+
+```bash
+# Create a new migration
+npm run migrate:create -- add-status-column
+
+# Run migrations manually (uses DATABASE_URL)
+DATABASE_URL=postgres://... npm run migrate up
 ```
 
 ## Deployments

@@ -26,10 +26,12 @@ src/
     routes.ts           — REST API for the web console (fleet, vivariums, messages)
   auth/                 — Google OAuth + JWT session management
   store/
-    db.ts               — SQLite connection (better-sqlite3)
+    db.ts               — PostgreSQL pool + migration runner (node-pg-migrate)
     users.ts            — User CRUD
     vivariums.ts        — Vivarium registry and state
   util/                 — Shared helpers
+
+migrations/             — Versioned SQL migration files (node-pg-migrate)
 
 web/                    — React 19 + Vite + TypeScript console app
   src/
@@ -54,7 +56,7 @@ landing/                — Static marketing site (vivarium.run)
 - **Design system**: dark bg (#0a0c0b), green accent oklch(0.80 0.155 150), fonts: Bricolage Grotesque / Hanken Grotesk / JetBrains Mono
 - **Logo**: `VivariumMark` component — node-sprout in a rounded-square frame. Two variants: `flat` (UI) and `glow` (landing nav)
 - Config via environment variables
-- SQLite for persistence (no ORM, raw queries via better-sqlite3)
+- PostgreSQL for persistence (no ORM, raw queries via `pg`; migrations via `node-pg-migrate`)
 - WebSocket protocol is JSON messages defined in `ws/protocol.ts` (shared types with the vivarium repo)
 - Telegram bot uses grammY with webhook or polling
 - Auth: Google OAuth for the web console, JWT sessions
