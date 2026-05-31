@@ -1,13 +1,31 @@
 import { type FormEvent, useState } from "react";
 
+const BUTTONDOWN_URL =
+  "https://buttondown.com/api/emails/embed-subscribe/assaf-benjosef";
+
 export function WaitlistForm({ large }: { large?: boolean }) {
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState("");
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!email) return;
-    setSubmitted(true);
+    setError("");
+    try {
+      const res = await fetch(BUTTONDOWN_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      if (res.ok || res.status === 201) {
+        setSubmitted(true);
+      } else {
+        setError("Something went wrong — try again?");
+      }
+    } catch {
+      setError("Network error — try again?");
+    }
   }
 
   if (submitted) {
@@ -97,6 +115,11 @@ export function WaitlistForm({ large }: { large?: boolean }) {
           Get early access
         </button>
       </div>
+      {error && (
+        <div style={{ fontFamily: "var(--font-ui)", fontSize: 13, color: "var(--red)" }}>
+          {error}
+        </div>
+      )}
       <div
         style={{
           fontFamily: "var(--font-mono)",
