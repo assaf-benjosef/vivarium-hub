@@ -51,7 +51,7 @@ function ChatDemo() {
           </div>
         </div>
         <span style={{ marginLeft: "auto", fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--dim)" }}>
-          Telegram
+          chat
         </span>
       </div>
       <div
@@ -126,13 +126,13 @@ function ChatDemo() {
 const BULLETS: [string, string, string][] = [
   [
     "bolt",
-    "You stay in Telegram",
-    "No tabs, no terminal — the whole loop happens in a chat you already check.",
+    "Chat from your phone",
+    "No tabs, no terminal — the whole loop happens in a conversation you can check from anywhere.",
   ],
   [
     "doc",
     "It shows its work",
-    "Screenshots of the running app land in the thread, so you can review from your phone.",
+    "Screenshots of the running app land in the thread, so you can review visually.",
   ],
   [
     "git",
@@ -174,7 +174,7 @@ export function TelegramDemo() {
               <p style={{ margin: 0, fontSize: 17.5, color: "var(--mid)", lineHeight: 1.55, maxWidth: 560 }}>
                 Every vivarium reports back like a teammate — a message when it
                 starts, a screenshot when the app is live, a note when it pushes
-                to git.
+                to git. Currently via Telegram, with more channels coming.
               </p>
             </div>
             <div

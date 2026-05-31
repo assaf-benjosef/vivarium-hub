@@ -61,8 +61,8 @@ export function Hero() {
           }}
         >
           Vivarium is an always-on AI agent that lives in its own tiny VM. Spin
-          one up per project — text it on Telegram, and it builds and tends your
-          app while you do anything else.
+          one up per project — message it from your phone, and it builds and
+          tends your app while you do anything else.
         </p>
         <div style={{ marginTop: 30 }}>
           <WaitlistForm />

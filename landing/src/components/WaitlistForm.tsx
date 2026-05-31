@@ -128,7 +128,7 @@ export function WaitlistForm({ large }: { large?: boolean }) {
           color: "var(--dim)",
         }}
       >
-        open source · self-host on SmolVM or Docker
+        open source · self-hostable · runs on any server
       </div>
     </form>
   );

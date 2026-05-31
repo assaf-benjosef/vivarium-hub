@@ -18,8 +18,8 @@ const FEATS: [string, string, string][] = [
   ],
   [
     "bolt",
-    "SmolVM or Docker",
-    "Run it as a featherweight microVM pack or a full container — the setup script handles both.",
+    "Runs anywhere",
+    "Spin it up on any server — a lightweight VM or a container. One command and it's alive.",
   ],
   [
     "clock",

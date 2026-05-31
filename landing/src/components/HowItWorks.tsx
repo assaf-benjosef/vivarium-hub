@@ -70,11 +70,10 @@ function FlowNode({
 
 export function HowItWorks() {
   const internals = [
-    "Node orchestrator",
-    "Claude Code (Agent SDK)",
-    "/workspace · git",
-    "Chromium",
-    "port 3000",
+    "AI agent",
+    "Git repo",
+    "Browser",
+    "Your app (live)",
   ];
 
   return (
@@ -98,10 +97,10 @@ export function HowItWorks() {
               color: "var(--hi)",
             }}
           >
-            From your group chat to a running app.
+            From a text message to a running app.
           </h2>
           <p style={{ margin: "0 auto", fontSize: 17.5, color: "var(--mid)", lineHeight: 1.55, maxWidth: 560 }}>
-            No IDE, no SSH. You talk; a vivarium does the building, three hops away.
+            No IDE, no SSH. You describe what you want; a vivarium does the building.
           </p>
         </div>
         <div
@@ -143,20 +142,20 @@ export function HowItWorks() {
           <FlowNode
             icon="bolt"
             kicker="01 · YOU"
-            title="Text it on Telegram"
+            title="Send a message"
             desc="Describe what to build or fix, from your phone, from anywhere. Drop screenshots and links."
           />
           <FlowNode
             icon="git"
             kicker="02 · HUB"
-            title="The hub routes it"
-            desc="A Node/Fastify server authenticates you and forwards the message over WebSocket to the right VM."
+            title="It reaches your vivarium"
+            desc="Your message is routed to the right VM — authenticated, queued, and delivered in seconds."
           />
           <FlowNode
             icon="cpu"
             kicker="03 · VIVARIUM"
             title="The agent builds"
-            desc="A persistent Claude Code instance writes code, runs the app, screenshots it, and auto-saves to git."
+            desc="A persistent AI agent writes code, runs the app, screenshots it, and auto-saves to git."
           />
         </div>
         {/* VM internals strip */}
