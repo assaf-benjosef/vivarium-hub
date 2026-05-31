@@ -94,7 +94,7 @@ function MiniConsole() {
         ))}
       </div>
       {/* Content */}
-      <div style={{ flex: 1, padding: "20px 24px" }}>
+      <div style={{ flex: 1, padding: "16px 16px", minWidth: 0, overflow: "hidden" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
           <h2
             style={{
@@ -228,7 +228,7 @@ export function ConsoleTieIn() {
             </div>
           </div>
           {/* scaled console */}
-          <div className="lp-console-frame" style={{ height: 400, overflow: "hidden" }}>
+          <div className="lp-console-frame" style={{ overflow: "hidden" }}>
             <MiniConsole />
           </div>
         </div>
