@@ -20,6 +20,7 @@ COPY package*.json ./
 RUN npm ci --omit=dev
 COPY --from=builder /app/dist/ ./dist/
 COPY --from=builder /app/web/dist/ ./web/dist/
+COPY migrations/ ./migrations/
 RUN mkdir -p /app/data
 
 EXPOSE 8080
