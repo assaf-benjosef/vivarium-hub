@@ -1,6 +1,98 @@
 import { Icon } from "./Icon";
 import { Eyebrow, PulseDot } from "./Features";
 
+function AppScreenshot() {
+  return (
+    <div
+      style={{
+        height: 100,
+        borderRadius: 11,
+        border: "1px solid var(--line)",
+        background: "var(--bg)",
+        overflow: "hidden",
+        position: "relative",
+        padding: "10px 12px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 6,
+      }}
+    >
+      <div style={{ fontSize: 10, fontWeight: 700, color: "var(--hi)", letterSpacing: ".02em" }}>
+        Tip Calculator
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <div
+          style={{
+            flex: 1,
+            height: 22,
+            borderRadius: 6,
+            background: "var(--panel2)",
+            border: "1px solid var(--line)",
+            padding: "0 8px",
+            display: "flex",
+            alignItems: "center",
+            fontSize: 9,
+            color: "var(--mid)",
+            fontFamily: "var(--font-mono)",
+          }}
+        >
+          $42.00
+        </div>
+        <div
+          style={{
+            padding: "4px 8px",
+            borderRadius: 6,
+            background: "var(--life-bg)",
+            fontSize: 9,
+            fontWeight: 600,
+            color: "var(--life)",
+          }}
+        >
+          20%
+        </div>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <span style={{ fontSize: 9, color: "var(--dim)" }}>Split by</span>
+        <div style={{ display: "flex", gap: 3 }}>
+          {["-", "2", "+"].map((c, i) => (
+            <span
+              key={i}
+              style={{
+                width: 18,
+                height: 18,
+                borderRadius: 5,
+                background: i === 1 ? "var(--panel2)" : "var(--life-bg)",
+                border: `1px solid ${i === 1 ? "var(--line)" : "transparent"}`,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 9,
+                fontWeight: 600,
+                color: i === 1 ? "var(--hi)" : "var(--life)",
+              }}
+            >
+              {c}
+            </span>
+          ))}
+        </div>
+      </div>
+      <div
+        style={{
+          marginTop: "auto",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "baseline",
+        }}
+      >
+        <span style={{ fontSize: 8, color: "var(--dim)" }}>Each pays</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: "var(--hi)", fontFamily: "var(--font-mono)" }}>
+          $25.20
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function ChatDemo() {
   const msgs: [string, string, string?][] = [
     ["out", "build me a tip calculator"],
@@ -91,30 +183,7 @@ function ChatDemo() {
                   </span>
                 )}
               </div>
-              {extra === "shot" && (
-                <div
-                  style={{
-                    height: 90,
-                    borderRadius: 11,
-                    border: "1px solid var(--line)",
-                    background: `repeating-linear-gradient(135deg, var(--panel2) 0 10px, var(--bg) 10px 20px)`,
-                    position: "relative",
-                  }}
-                >
-                  <span
-                    style={{
-                      position: "absolute",
-                      left: 9,
-                      bottom: 7,
-                      fontFamily: "var(--font-mono)",
-                      fontSize: 10,
-                      color: "var(--dim)",
-                    }}
-                  >
-                    screenshot · :3000
-                  </span>
-                </div>
-              )}
+              {extra === "shot" && <AppScreenshot />}
             </div>
           </div>
         ))}
