@@ -13,10 +13,11 @@ export function WaitlistForm({ large }: { large?: boolean }) {
     if (!email) return;
     setError("");
     try {
+      const form = new FormData();
+      form.append("email", email);
       const res = await fetch(BUTTONDOWN_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: form,
       });
       if (res.ok || res.status === 201) {
         setSubmitted(true);
