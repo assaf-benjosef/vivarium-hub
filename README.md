@@ -1,35 +1,56 @@
-# 🌱 Vivarium Hub
+# Vivarium Hub
 
-Lightweight message broker that connects Telegram to your self-hosted [Vivarium](https://github.com/assaf-benjosef/vivarium) agents via WebSocket.
-
-The hub never sees your API key or data — it just routes messages.
+Message broker and web console for [Vivarium](https://github.com/assaf-benjosef/vivarium) agents. Routes chat messages to your self-hosted vivariums via WebSocket, and provides a fleet management UI.
 
 ## Architecture
 
 ```
-YOUR VPS (~$5/mo)                         USER'S MACHINE (anywhere)
-┌────────────────────────┐
-│      Vivarium Hub      │                ┌──────────────────────┐
-│                        │◄──── WSS ──────│  Vivarium "my-app"   │
-│  Telegram Bot (grammY) │                │  API key: sk-ant-... │
-│  WebSocket Server (ws) │                │  App on :3000        │
-│  SQLite (users, state) │                └──────────────────────┘
-│  HTTP API (Fastify)    │
-│                        │
-│  NO API key storage    │
-│  NO heavy compute      │
-│  Just routes messages. │
-└────────────────────────┘
+┌─────────────────────────────────────────┐
+│              Vivarium Hub               │
+│                                         │
+│  Chat (Telegram via grammY)             │
+│  WebSocket server (ws)                  │
+│  HTTP API (Fastify)                     │
+│  Web console (React 19 + Vite)          │
+│  SQLite (users, vivariums, state)       │
+│  Google OAuth                           │
+│                                         │
+│  Routes messages. Never sees API keys.  │
+└─────────────────────────────────────────┘
+        ▲                    ▲
+        │ WSS                │ WSS
+┌───────┴───────┐    ┌──────┴────────┐
+│  Vivarium A   │    │  Vivarium B   │
+│  "fern"       │    │  "moss"       │
+│  recipe-box   │    │  standup-bot  │
+└───────────────┘    └───────────────┘
 ```
 
+## Components
+
+### Backend (`src/`)
+
+- **WebSocket server** (`src/ws/`) — accepts vivarium connections, routes messages bidirectionally
+- **Chat integration** (`src/chat/`) — Telegram bot via grammY
+- **HTTP API** (`src/api/`) — REST endpoints for the web console
+- **Router** (`src/router/`) — routes incoming chat messages to the correct vivarium
+- **Store** (`src/store/`) — SQLite persistence (users, vivariums, message history)
+- **Auth** (`src/auth/`) — Google OAuth + JWT for the web console
+
+### Web Console (`web/`)
+
+React 19 + Vite + TypeScript SPA served by the Fastify backend.
+
+- **Fleet** — live dashboard of all connected vivariums (status, current task, cost)
+- **Detail** — per-vivarium view with activity timeline
+- **Onboarding** — step-by-step setup for new vivariums
+- **Analytics / Health** — stubs for cost tracking and uptime monitoring
+
+### Landing Page (`landing/`)
+
+Static marketing site deployed to [vivarium.run](https://vivarium.run). Vite + React 19 + TypeScript, independent build. Features animated specimen jars, how-it-works flow, chat demo, and a Buttondown waitlist form.
+
 ## Quick start
-
-### Prerequisites
-
-- Node.js 22+
-- A [Telegram bot token](https://core.telegram.org/bots#creating-a-new-bot) (talk to [@BotFather](https://t.me/BotFather))
-
-### Run locally
 
 ```bash
 npm install
@@ -40,7 +61,7 @@ JWT_SECRET=$(openssl rand -hex 32) \
 node dist/index.js
 ```
 
-### Run with Docker
+### Docker
 
 ```bash
 docker build -t vivarium-hub .
@@ -50,7 +71,6 @@ docker run -d \
   -e JWT_SECRET=$(openssl rand -hex 32) \
   -v hub-data:/app/data \
   -p 8080:8080 \
-  --name vivarium-hub \
   vivarium-hub
 ```
 
@@ -59,65 +79,40 @@ docker run -d \
 | Variable | Required | Description |
 |---|---|---|
 | `TELEGRAM_BOT_TOKEN` | ✅ | Telegram bot token from BotFather |
-| `JWT_SECRET` | ✅ | Secret for signing setup tokens (min 32 chars) |
-| `DB_PATH` | | SQLite database path (default: `./data/hub.db`) |
+| `JWT_SECRET` | ✅ | Secret for signing tokens (min 32 chars) |
+| `DB_PATH` | | SQLite path (default: `./data/hub.db`) |
 | `PORT` | | HTTP/WebSocket port (default: `8080`) |
-| `ALLOWED_USERS` | | Comma-separated Telegram user IDs (empty = allow all) |
-
-## Connecting a vivarium
-
-Generate a token and start a vivarium pointed at this hub:
-
-```bash
-# On your hub machine — generate a token (or use the mock script for testing)
-HUB_TOKEN=$(node -e "
-  import('jose').then(async ({SignJWT}) => {
-    const secret = new TextEncoder().encode(process.env.JWT_SECRET);
-    const token = await new SignJWT({sub: '12345'})
-      .setProtectedHeader({alg: 'HS256'})
-      .setIssuedAt()
-      .setExpirationTime('30d')
-      .sign(secret);
-    console.log(token);
-  });
-")
-
-# On the user's machine — start the vivarium
-docker run -d \
-  -e ANTHROPIC_API_KEY=sk-ant-... \
-  -e HUB_URL=wss://your-hub:8080/ws \
-  -e HUB_TOKEN=$HUB_TOKEN \
-  -e VIVARIUM_NAME=my-app \
-  -v vivarium-data:/workspace \
-  -p 3000:3000 \
-  vivarium
-```
-
-## Telegram commands
-
-| Command | Description |
-|---|---|
-| `/help` | Show available commands |
-| `/status` | Check if your vivarium is online |
-| `/new` | Clear agent memory and start fresh |
+| `ALLOWED_USERS` | | Comma-separated Telegram user IDs |
+| `GOOGLE_CLIENT_ID` | | For web console OAuth |
+| `GOOGLE_CLIENT_SECRET` | | For web console OAuth |
 
 ## Development
 
 ```bash
 npm install
-npm test          # 71 tests
-npm run dev       # needs TELEGRAM_BOT_TOKEN + JWT_SECRET
+npm test
+
+# Backend
+npm run dev   # needs TELEGRAM_BOT_TOKEN + JWT_SECRET
+
+# Web console
+cd web && npm run dev
+
+# Landing page
+cd landing && npm run dev
 ```
 
-### Testing with the mock vivarium
+## Deployments
 
-```bash
-# Terminal 1 — start the hub
-TELEGRAM_BOT_TOKEN=... JWT_SECRET=... npm run dev
+| What | Where | Domain |
+|---|---|---|
+| Hub (backend + console) | VPS / Docker | — |
+| Landing page | Vercel | [vivarium.run](https://vivarium.run) |
 
-# Terminal 2 — connect a mock vivarium that echoes messages
-HUB_URL=ws://localhost:8080/ws HUB_TOKEN=... npx tsx scripts/mock-vivarium.ts
-```
+## Related
+
+- [vivarium](https://github.com/assaf-benjosef/vivarium) — the agent runtime
+- [vivarium.run](https://vivarium.run) — landing page & waitlist
 
 ## License
 
