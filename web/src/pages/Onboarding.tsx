@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Logo } from "../components/Logo";
 import { Icon } from "../components/Icon";
 import { PulseDot } from "../components/PulseDot";
-import { useCreateVivarium } from "../lib/hooks";
+import { useCreateVivarium, useMe } from "../lib/hooks";
 import { fetchFleet } from "../lib/api";
 
 function CopyBlock({ text }: { text: string }) {
@@ -40,11 +40,12 @@ function CopyBlock({ text }: { text: string }) {
           position: "absolute",
           top: 10,
           right: 10,
-          background: copied ? "var(--life-bg)" : "var(--surface2)",
+          background: copied ? "#142019" : "var(--surface2)",
           border: "1px solid var(--line)",
           borderRadius: 8,
           padding: "5px 8px",
           cursor: "pointer",
+          zIndex: 1,
           display: "flex",
           alignItems: "center",
           gap: 5,
@@ -255,6 +256,8 @@ export function Onboarding() {
   const [vivariumOnline, setVivariumOnline] = useState(false);
   const navigate = useNavigate();
   const createMutation = useCreateVivarium();
+  const { data: me } = useMe();
+  const telegramLinked = !!me?.telegramId;
 
   // Poll fleet to detect when the vivarium comes online
   useEffect(() => {
@@ -377,25 +380,51 @@ export function Onboarding() {
               padding: 24,
             }}
           >
-            <p style={{ margin: "0 0 18px", fontSize: 14, color: "var(--mid)", lineHeight: 1.5 }}>
-              Your vivarium talks to you over Telegram. Use <code>/setup</code> in your Telegram bot
-              to generate a token, or skip this step if you'll configure Telegram later.
-            </p>
-            <div
-              style={{
-                background: "var(--life-bg)",
-                borderRadius: 12,
-                padding: "12px 14px",
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-              }}
-            >
-              <Icon name="check" size={16} color="var(--life)" />
-              <span style={{ fontSize: 13, color: "var(--hi)" }}>
-                Telegram connection is configured in the hub. Skip to continue.
-              </span>
-            </div>
+            {telegramLinked ? (
+              <>
+                <p style={{ margin: "0 0 18px", fontSize: 14, color: "var(--mid)", lineHeight: 1.5 }}>
+                  Your account is linked to Telegram. Vivariums you create will be accessible from
+                  your Telegram chat.
+                </p>
+                <div
+                  style={{
+                    background: "var(--life-bg)",
+                    borderRadius: 12,
+                    padding: "12px 14px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                  }}
+                >
+                  <Icon name="check" size={16} color="var(--life)" />
+                  <span style={{ fontSize: 13, color: "var(--hi)" }}>
+                    Connected to Telegram ID <span className="mono">{me?.telegramId}</span>
+                  </span>
+                </div>
+              </>
+            ) : (
+              <>
+                <p style={{ margin: "0 0 18px", fontSize: 14, color: "var(--mid)", lineHeight: 1.5 }}>
+                  Link your Telegram account so vivariums you create show up in Telegram.
+                  Go to <strong>Settings</strong> to link your Telegram ID, or skip this step for now.
+                </p>
+                <div
+                  style={{
+                    background: "rgba(255,180,0,0.08)",
+                    borderRadius: 12,
+                    padding: "12px 14px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                  }}
+                >
+                  <Icon name="alert" size={16} color="#ffb400" />
+                  <span style={{ fontSize: 13, color: "var(--hi)" }}>
+                    Telegram not linked. You can connect it later in Settings.
+                  </span>
+                </div>
+              </>
+            )}
           </div>
         )}
 
