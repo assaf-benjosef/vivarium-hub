@@ -153,7 +153,10 @@ export function apiRoutes(deps: ApiDeps) {
         wsUrl.pathname = "/ws";
         const hubUrl = wsUrl.toString().replace(/\/$/, "");
 
-        const flags = [`--token ${token}`, `--hub-url ${hubUrl}`];
+        const flags = [`--token ${token}`];
+        if (hubUrl !== "wss://app.vivarium.run/ws") {
+          flags.push(`--hub-url ${hubUrl}`);
+        }
         if (name) flags.push(`--name ${name}`);
         if (runtime === "smol") flags.push("--smolvm");
         else if (runtime === "docker") flags.push("--docker");
