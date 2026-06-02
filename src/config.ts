@@ -6,6 +6,7 @@ const ConfigSchema = z.object({
   databaseUrl: z.string().default("postgres://viv:pass@localhost:5432/vivarium"),
   port: z.number().default(8080),
   allowedUsers: z.array(z.number()).default([]),
+  baseUrl: z.string().default("http://localhost:8080"),
   googleClientId: z.string().optional(),
   googleClientSecret: z.string().optional(),
 });
@@ -24,6 +25,7 @@ export function loadConfig(): Config {
   return ConfigSchema.parse({
     telegramBotToken: process.env.TELEGRAM_BOT_TOKEN,
     jwtSecret: process.env.JWT_SECRET,
+    baseUrl: process.env.BASE_URL || undefined,
     databaseUrl: process.env.DATABASE_URL || undefined,
     port: process.env.PORT ? Number(process.env.PORT) : undefined,
     allowedUsers,

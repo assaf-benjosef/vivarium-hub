@@ -7,17 +7,14 @@ import { log } from "../util/log.js";
 export interface AuthDeps {
   users: UserStore;
   jwtSecret: string;
+  baseUrl: string;
   googleClientId: string;
   googleClientSecret: string;
 }
 
 export function authRoutes(deps: AuthDeps) {
   return async function (app: FastifyInstance) {
-    const redirectUri = (req: FastifyRequest) => {
-      const proto = req.headers["x-forwarded-proto"] ?? "http";
-      const host = req.headers["x-forwarded-host"] ?? req.headers.host ?? "localhost";
-      return `${proto}://${host}/auth/google/callback`;
-    };
+    const redirectUri = `${deps.baseUrl}/auth/google/callback`;
 
     const frontendOrigin = (req: FastifyRequest) => {
       const referer = req.headers.referer;
@@ -33,7 +30,7 @@ export function authRoutes(deps: AuthDeps) {
     app.get("/google", async (req, reply) => {
       const origin = frontendOrigin(req);
       const state = origin ? Buffer.from(origin).toString("base64url") : "";
-      const url = getGoogleAuthUrl(deps.googleClientId, redirectUri(req), state);
+      const url = getGoogleAuthUrl(deps.googleClientId, redirectUri, state);
       return reply.redirect(url);
     });
 
@@ -53,7 +50,7 @@ export function authRoutes(deps: AuthDeps) {
             req.query.code,
             deps.googleClientId,
             deps.googleClientSecret,
-            redirectUri(req)
+            redirectUri
           );
 
           const user = await deps.users.getOrCreateByEmail(email, name);

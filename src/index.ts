@@ -45,6 +45,7 @@ async function main() {
       authRoutes({
         users,
         jwtSecret: config.jwtSecret,
+        baseUrl: config.baseUrl,
         googleClientId: config.googleClientId!,
         googleClientSecret: config.googleClientSecret!,
       }),
