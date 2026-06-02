@@ -166,7 +166,7 @@ export function apiRoutes(deps: ApiDeps) {
           name,
           userId: user.id,
           hubUrl,
-          setupCommand: `./scripts/setup.sh ${flags.join(" ")}`,
+          setupCommand: `curl -sSL https://vivarium.run/setup | bash -s -- ${flags.join(" ")}`,
         };
       }
     );
