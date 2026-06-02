@@ -1,0 +1,9 @@
+{
+  "redirects": [
+    {
+      "source": "/setup",
+      "destination": "https://raw.githubusercontent.com/assaf-benjosef/vivarium/main/scripts/setup.sh",
+      "statusCode": 302
+    }
+  ]
+}
