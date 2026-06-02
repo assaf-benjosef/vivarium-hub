@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Logo } from "../components/Logo";
 import { Icon } from "../components/Icon";
 import { PulseDot } from "../components/PulseDot";
-import { useCreateVivarium, useMe } from "../lib/hooks";
+import { useCreateVivarium, useMe, useUpdateMe } from "../lib/hooks";
 import { fetchFleet } from "../lib/api";
 
 function CopyBlock({ text }: { text: string }) {
@@ -257,7 +257,9 @@ export function Onboarding() {
   const navigate = useNavigate();
   const createMutation = useCreateVivarium();
   const { data: me } = useMe();
+  const updateMutation = useUpdateMe();
   const telegramLinked = !!me?.telegramId;
+  const [telegramInput, setTelegramInput] = useState("");
 
   // Poll fleet to detect when the vivarium comes online
   useEffect(() => {
@@ -405,24 +407,58 @@ export function Onboarding() {
             ) : (
               <>
                 <p style={{ margin: "0 0 18px", fontSize: 14, color: "var(--mid)", lineHeight: 1.5 }}>
-                  Link your Telegram account so vivariums you create show up in Telegram.
-                  Go to <strong>Settings</strong> to link your Telegram ID, or skip this step for now.
+                  Link your Telegram account so you can chat with your vivariums.
+                  Message{" "}
+                  <a
+                    href="https://t.me/userinfobot"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: "var(--life)" }}
+                  >@userinfobot</a>{" "}
+                  on Telegram — it'll reply with your ID.
                 </p>
-                <div
-                  style={{
-                    background: "rgba(255,180,0,0.08)",
-                    borderRadius: 12,
-                    padding: "12px 14px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                  }}
-                >
-                  <Icon name="alert" size={16} color="#ffb400" />
-                  <span style={{ fontSize: 13, color: "var(--hi)" }}>
-                    Telegram not linked. You can connect it later in Settings.
-                  </span>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="Your Telegram ID"
+                    value={telegramInput}
+                    onChange={(e) => setTelegramInput(e.target.value)}
+                    style={{
+                      flex: 1,
+                      background: "var(--bg)",
+                      border: "1px solid var(--line)",
+                      borderRadius: 10,
+                      padding: "10px 14px",
+                      fontSize: 14,
+                      color: "var(--hi)",
+                      outline: "none",
+                    }}
+                  />
+                  <button
+                    onClick={() => {
+                      const id = parseInt(telegramInput, 10);
+                      if (!isNaN(id)) updateMutation.mutate({ telegramId: id });
+                    }}
+                    disabled={!telegramInput.trim() || updateMutation.isPending}
+                    style={{
+                      background: telegramInput.trim() ? "var(--life)" : "var(--surface2)",
+                      color: telegramInput.trim() ? "#06231a" : "var(--dim)",
+                      border: "none",
+                      borderRadius: 10,
+                      padding: "10px 18px",
+                      fontSize: 14,
+                      fontWeight: 600,
+                      cursor: telegramInput.trim() ? "pointer" : "not-allowed",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {updateMutation.isPending ? "Linking..." : "Link"}
+                  </button>
                 </div>
+                <p style={{ margin: "12px 0 0", fontSize: 12, color: "var(--dim)" }}>
+                  You can skip this and connect later in Settings.
+                </p>
               </>
             )}
           </div>
