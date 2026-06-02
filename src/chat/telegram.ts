@@ -1,4 +1,4 @@
-import { Bot, InputFile } from "grammy";
+import { Bot, InputFile, type Context } from "grammy";
 import type { ChatProvider } from "./provider.js";
 import type { Router } from "../router/router.js";
 import type { Config } from "../config.js";
@@ -74,7 +74,7 @@ export class TelegramChat implements ChatProvider {
   }
 
   private async handleCommand(
-    ctx: { reply: (text: string) => Promise<unknown> },
+    ctx: Context,
     chatId: number,
     text: string,
     telegramId: number
@@ -86,16 +86,16 @@ export class TelegramChat implements ChatProvider {
       case "/help":
       case "/start":
         await ctx.reply(
-          "Hi! I'm Viv, your AI app developer.\n\n" +
+          "<b>Hey! I'm Viv, your AI app developer.</b>\n\n" +
             "Tell me what you want to build, and I'll write the code, run it, and show you screenshots.\n\n" +
-            "Commands:\n" +
-            "/setup - Set up a new vivarium on your machine\n" +
-            "/list - Show all your vivariums\n" +
-            "/switch <name> - Switch to a different vivarium\n" +
-            "/status - Check current vivarium status\n" +
-            "/new - Start a fresh conversation\n" +
-            "/forget <name> - Remove a vivarium\n" +
-            "/help - Show this message"
+            "<b>Commands</b>\n" +
+            "/setup — Set up a new vivarium\n" +
+            "/list — Show your vivariums\n" +
+            "/switch <code>name</code> — Switch active vivarium\n" +
+            "/status — Current vivarium status\n" +
+            "/new — Start a fresh conversation\n" +
+            "/forget <code>name</code> — Remove a vivarium",
+          { parse_mode: "HTML" }
         );
         return;
 
@@ -137,25 +137,26 @@ export class TelegramChat implements ChatProvider {
   }
 
   private async handleSetup(
-    ctx: { reply: (text: string) => Promise<unknown> },
+    ctx: Context,
     telegramId: number
   ): Promise<void> {
     const user = await this.users.getOrCreate(telegramId);
     const token = await createSetupToken(user.id, this.config.jwtSecret);
 
     await ctx.reply(
-      "Run this on your machine (Mac or Linux):\n\n" +
-        `curl -sSL https://vivarium.run/setup | sh -s -- --token ${token}\n\n` +
-        "Or if you have the vivarium repo locally:\n\n" +
-        `cd vivarium && ./scripts/setup.sh --token ${token}\n\n` +
+      "<b>Run this on your machine</b> (Mac or Linux):\n\n" +
+        `<code>curl -sSL https://vivarium.run/setup | sh -s -- --token ${token}</code>\n\n` +
+        "Or if you have the repo locally:\n\n" +
+        `<code>./scripts/setup.sh --token ${token}</code>\n\n` +
         "It'll ask for your Anthropic API key and set everything up.\n" +
-        "Your key stays on YOUR machine — I never see it.\n\n" +
-        "Add --smolvm to use SmolVM instead of Docker."
+        "Your key stays on <b>your machine</b> — I never see it.\n\n" +
+        "Add <code>--smolvm</code> to use SmolVM instead of Docker.",
+      { parse_mode: "HTML", link_preview_options: { is_disabled: true } }
     );
   }
 
   private async handleList(
-    ctx: { reply: (text: string) => Promise<unknown> },
+    ctx: Context,
     telegramId: number
   ): Promise<void> {
     const user = await this.users.getByTelegramId(telegramId);
@@ -173,16 +174,20 @@ export class TelegramChat implements ChatProvider {
     const lines = vivList.map((v) => {
       const isActive = v.id === user.active_vivarium_id;
       const isOnline = this.wsServer?.isConnected(String(v.id)) ?? false;
-      const statusIcon = isOnline ? "online" : "offline";
-      const activeTag = isActive ? " (active)" : "";
-      return `${isOnline ? "+" : "-"} ${v.name}${activeTag} — ${statusIcon}`;
+      const dot = isOnline ? "\u{1F7E2}" : "\u{26AA}";
+      const name = isActive ? `<b>${v.name}</b>` : v.name;
+      const status = isOnline ? "online" : "offline";
+      return `${dot} ${name} — ${status}`;
     });
 
-    await ctx.reply("Your vivariums:\n\n" + lines.join("\n"));
+    await ctx.reply(
+      "<b>Your vivariums</b>\n\n" + lines.join("\n"),
+      { parse_mode: "HTML" }
+    );
   }
 
   private async handleSwitch(
-    ctx: { reply: (text: string) => Promise<unknown> },
+    ctx: Context,
     telegramId: number,
     name: string
   ): Promise<void> {
@@ -215,12 +220,17 @@ export class TelegramChat implements ChatProvider {
       });
     }
 
-    const status = isOnline ? "It's online and ready." : "It's currently offline — it'll reconnect when the machine comes back up.";
-    await ctx.reply(`Switched to "${name}"! ${status}`);
+    const status = isOnline
+      ? "\u{1F7E2} Online and ready."
+      : "\u{26AA} Currently offline — it'll reconnect when the machine comes back up.";
+    await ctx.reply(
+      `Switched to <b>${name}</b>\n\n${status}`,
+      { parse_mode: "HTML" }
+    );
   }
 
   private async handleForget(
-    ctx: { reply: (text: string) => Promise<unknown> },
+    ctx: Context,
     telegramId: number,
     name: string
   ): Promise<void> {
@@ -254,7 +264,7 @@ export class TelegramChat implements ChatProvider {
   }
 
   private async handleStatus(
-    ctx: { reply: (text: string) => Promise<unknown> },
+    ctx: Context,
     telegramId: number
   ): Promise<void> {
     const user = await this.users.getByTelegramId(telegramId);
@@ -277,20 +287,22 @@ export class TelegramChat implements ChatProvider {
     }
 
     const status = await this.router.requestStatus(vivariumId);
-    const statusIcon = status.online ? "Online" : "Offline";
+    const dot = status.online ? "\u{1F7E2}" : "\u{26AA}";
+    const statusLabel = status.online ? "Online" : "Offline";
 
-    let reply = `${statusIcon}\nVivarium: ${vivarium.name}`;
+    let reply = `${dot} <b>${vivarium.name}</b> — ${statusLabel}`;
 
     if (status.totalCostUsd) {
-      reply += `\nSession cost: $${status.totalCostUsd.toFixed(2)}`;
+      reply += `\n\u{1F4B0} Session cost: $${status.totalCostUsd.toFixed(2)}`;
     }
 
     if (status.inputTokens) {
       const contextPct = Math.round((status.inputTokens / 200_000) * 100);
-      reply += `\nContext: ${contextPct}%`;
+      const bar = "\u{2588}".repeat(Math.round(contextPct / 10)) + "\u{2591}".repeat(10 - Math.round(contextPct / 10));
+      reply += `\n\u{1F9E0} Context: ${bar} ${contextPct}%`;
     }
 
-    await ctx.reply(reply);
+    await ctx.reply(reply, { parse_mode: "HTML" });
   }
 
   async start(): Promise<void> {
