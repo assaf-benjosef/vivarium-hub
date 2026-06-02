@@ -35,6 +35,7 @@ async function main() {
     users,
     vivariums: vivariumStore,
     jwtSecret: config.jwtSecret,
+    baseUrl: config.baseUrl,
     authEnabled,
   };
 

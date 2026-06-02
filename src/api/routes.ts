@@ -11,6 +11,7 @@ export interface ApiDeps {
   users: UserStore;
   vivariums: VivariumStore;
   jwtSecret: string;
+  baseUrl: string;
   authEnabled: boolean;
 }
 
@@ -147,8 +148,10 @@ export function apiRoutes(deps: ApiDeps) {
 
         const token = await createSetupToken(user.id, deps.jwtSecret);
 
-        const protocol = req.protocol === "https" ? "wss" : "ws";
-        const hubUrl = `${protocol}://${req.hostname}:${req.port}/ws`;
+        const wsUrl = new URL(deps.baseUrl);
+        wsUrl.protocol = wsUrl.protocol === "https:" ? "wss:" : "ws:";
+        wsUrl.pathname = "/ws";
+        const hubUrl = wsUrl.toString().replace(/\/$/, "");
 
         const flags = [`--token ${token}`, `--hub-url ${hubUrl}`];
         if (name) flags.push(`--name ${name}`);
