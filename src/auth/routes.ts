@@ -12,6 +12,19 @@ export interface AuthDeps {
   googleClientSecret: string;
 }
 
+function isAllowedOrigin(origin: string, baseUrl: string): boolean {
+  if (!origin) return false;
+  try {
+    const url = new URL(origin);
+    const base = new URL(baseUrl);
+    if (url.origin === base.origin) return true;
+    if (url.hostname === "localhost" || url.hostname === "127.0.0.1") return true;
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 export function authRoutes(deps: AuthDeps) {
   return async function (app: FastifyInstance) {
     const redirectUri = `${deps.baseUrl}/auth/google/callback`;
@@ -27,8 +40,9 @@ export function authRoutes(deps: AuthDeps) {
       return "";
     };
 
-    app.get("/google", async (req, reply) => {
-      const origin = frontendOrigin(req);
+    app.get<{ Querystring: { origin?: string } }>("/google", async (req, reply) => {
+      const raw = req.query.origin || frontendOrigin(req);
+      const origin = isAllowedOrigin(raw, deps.baseUrl) ? raw : "";
       const state = origin ? Buffer.from(origin).toString("base64url") : "";
       const url = getGoogleAuthUrl(deps.googleClientId, redirectUri, state);
       return reply.redirect(url);
