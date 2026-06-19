@@ -121,15 +121,14 @@ export function apiRoutes(deps: ApiDeps) {
       }
     );
 
-    app.post<{ Body: { name: string; runtime?: string } }>(
+    app.post<{ Body: { name: string } }>(
       "/fleet",
       async (req, reply) => {
         const userId = await extractUserId(req, reply, deps);
         if (userId === -1) return;
 
-        const { name, runtime } = req.body as {
+        const { name } = req.body as {
           name: string;
-          runtime?: string;
         };
 
         if (!name) {
@@ -158,15 +157,13 @@ export function apiRoutes(deps: ApiDeps) {
           flags.push(`--hub-url ${hubUrl}`);
         }
         if (name) flags.push(`--name ${name}`);
-        if (runtime === "smol") flags.push("--smolvm");
-        else if (runtime === "docker") flags.push("--docker");
 
         return {
           token,
           name,
           userId: user.id,
           hubUrl,
-          setupCommand: `curl -sSL https://vivarium.run/setup | bash -s -- ${flags.join(" ")}`,
+          setupCommand: `curl -fsSL https://vivarium.run/install | bash -s -- ${flags.join(" ")}`,
         };
       }
     );

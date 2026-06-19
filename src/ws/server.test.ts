@@ -204,8 +204,7 @@ describe("WsServer", () => {
 
     await new Promise((r) => setTimeout(r, 50));
 
-    // Old socket is NOT closed (avoids SmolVM TSI cascade) — orphaned for heartbeat cleanup
-    expect(ws1.readyState).toBe(WebSocket.OPEN);
+    expect(ws1.readyState).toBe(WebSocket.CLOSED);
     expect(connectedIds).toHaveLength(2);
 
     ws1.close();

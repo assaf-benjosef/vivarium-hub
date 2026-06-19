@@ -134,6 +134,7 @@ DATABASE_URL=postgres://... npm run migrate up
 ## Related
 
 - [vivarium](https://github.com/assaf-benjosef/vivarium) — the agent runtime
+- [vivarium-cli](https://github.com/assaf-benjosef/vivarium-cli) — the `viv` CLI for managing sandboxes
 - [vivarium.run](https://vivarium.run) — landing page & waitlist
 
 ## License

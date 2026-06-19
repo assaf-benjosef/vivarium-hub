@@ -37,8 +37,8 @@ export function useHubHealth() {
 export function useCreateVivarium() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ name, runtime }: { name: string; runtime?: string }) =>
-      createVivarium(name, runtime),
+    mutationFn: ({ name }: { name: string }) =>
+      createVivarium(name),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["fleet"] }),
   });
 }

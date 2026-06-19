@@ -43,13 +43,12 @@ export function fetchVivariumStatus(id: number): Promise<VivariumStatus> {
 }
 
 export function createVivarium(
-  name: string,
-  runtime?: string
+  name: string
 ): Promise<CreateVivariumResponse> {
   return fetchJson("/api/fleet", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, runtime }),
+    body: JSON.stringify({ name }),
   });
 }
 

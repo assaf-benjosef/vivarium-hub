@@ -88,6 +88,7 @@ cd landing && npx tsc --noEmit  # Landing type-check
 - **Landing page**: Vercel, root directory `landing/`, deployed to vivarium.run
 - **Waitlist**: Buttondown (username: assaf-benjosef), form POSTs from the landing page
 
-## Related repo
+## Related repos
 
 - [vivarium](https://github.com/assaf-benjosef/vivarium) — the agent runtime that connects to this hub
+- [vivarium-cli](https://github.com/assaf-benjosef/vivarium-cli) — the `viv` CLI that manages sandbox lifecycle via microsandbox

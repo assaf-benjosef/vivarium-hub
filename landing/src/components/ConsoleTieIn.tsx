@@ -153,7 +153,7 @@ function MiniConsole() {
           </div>
           <MiniFleetRow name="fern" state="working" app="recipe-box" task="Adding image upload to recipe form" />
           <MiniFleetRow name="moss" state="idle" app="standup-bot" task="Idle — awaiting next message" />
-          <MiniFleetRow name="lichen" state="waking" app="invoice-tracker" task="Provisioning VM · pulling pack…" />
+          <MiniFleetRow name="lichen" state="waking" app="invoice-tracker" task="Provisioning sandbox · pulling image…" />
           <MiniFleetRow name="kelp" state="working" app="analytics-dash" task="Refactoring chart components" />
           <MiniFleetRow name="sprout" state="working" app="habit-tracker" task="Writing tests for streak logic" />
         </div>

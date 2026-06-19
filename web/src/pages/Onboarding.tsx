@@ -64,7 +64,7 @@ function CopyBlock({ text }: { text: string }) {
 }
 
 function Stepper({ step }: { step: number }) {
-  const steps = ["Runtime", "Connect", "Seed", "Provision"];
+  const steps = ["Connect", "Seed", "Provision"];
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
       {steps.map((s, i) => {
@@ -123,130 +123,8 @@ function Stepper({ step }: { step: number }) {
   );
 }
 
-function RuntimeCard({
-  on,
-  icon,
-  name,
-  tag,
-  desc,
-  specs,
-  onClick,
-}: {
-  on: boolean;
-  icon: string;
-  name: string;
-  tag: string;
-  desc: string;
-  specs: string[];
-  onClick: () => void;
-}) {
-  return (
-    <div
-      onClick={onClick}
-      style={{
-        flex: 1,
-        padding: 20,
-        borderRadius: 18,
-        cursor: "pointer",
-        background: on ? "var(--life-bg)" : "var(--surface)",
-        border: `1.5px solid ${on ? "var(--life)" : "var(--line)"}`,
-        transition: "transform .15s, border-color .15s",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: 14,
-        }}
-      >
-        <span
-          style={{
-            width: 42,
-            height: 42,
-            borderRadius: 13,
-            background: "var(--surface2)",
-            border: "1px solid var(--line)",
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Icon name={icon} size={22} color={on ? "var(--life)" : "var(--mid)"} />
-        </span>
-        {on && (
-          <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              borderRadius: 999,
-              fontSize: 11,
-              fontWeight: 600,
-              padding: "3px 9px",
-              background: "var(--life)",
-              color: "#06231a",
-            }}
-          >
-            <Icon name="check" size={12} color="#06231a" strokeWidth={2.6} /> Selected
-          </span>
-        )}
-        {!on && (
-          <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              borderRadius: 999,
-              fontSize: 11,
-              fontWeight: 600,
-              padding: "3px 9px",
-              background: "var(--surface2)",
-              color: "var(--mid)",
-              border: "1px solid var(--line)",
-            }}
-          >
-            {tag}
-          </span>
-        )}
-      </div>
-      <div style={{ fontSize: 17, fontWeight: 600, marginBottom: 4 }}>{name}</div>
-      <div style={{ fontSize: 13, color: "var(--mid)", lineHeight: 1.45, marginBottom: 14 }}>
-        {desc}
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-        {specs.map((s) => (
-          <div
-            key={s}
-            className="mono"
-            style={{
-              fontSize: 11.5,
-              color: "var(--dim)",
-              display: "flex",
-              gap: 8,
-              alignItems: "center",
-            }}
-          >
-            <span
-              style={{
-                width: 4,
-                height: 4,
-                borderRadius: 4,
-                background: on ? "var(--life)" : "var(--faint)",
-                flexShrink: 0,
-              }}
-            />
-            {s}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export function Onboarding() {
   const [step, setStep] = useState(0);
-  const [runtime, setRuntime] = useState("smol");
   const [name, setName] = useState("");
   const [seed, setSeed] = useState("");
   const [setupResult, setSetupResult] = useState<{
@@ -263,7 +141,7 @@ export function Onboarding() {
 
   // Poll fleet to detect when the vivarium comes online
   useEffect(() => {
-    if (step !== 3 || !name || vivariumOnline) return;
+    if (step !== 2 || !name || vivariumOnline) return;
     const interval = setInterval(async () => {
       try {
         const fleet = await fetchFleet();
@@ -276,18 +154,18 @@ export function Onboarding() {
     return () => clearInterval(interval);
   }, [step, name, vivariumOnline]);
 
-  const canNext = step !== 2 || name.trim().length > 0;
+  const canNext = step !== 1 || name.trim().length > 0;
 
   const handleNext = async () => {
-    if (step < 2) {
-      setStep(step + 1);
+    if (step === 0) {
+      setStep(1);
       return;
     }
-    if (step === 2) {
+    if (step === 1) {
       try {
-        const result = await createMutation.mutateAsync({ name: name.trim(), runtime });
+        const result = await createMutation.mutateAsync({ name: name.trim() });
         setSetupResult({ token: result.token, setupCommand: result.setupCommand });
-        setStep(3);
+        setStep(2);
       } catch {
         // error handled by mutation state
       }
@@ -296,7 +174,7 @@ export function Onboarding() {
     navigate("/");
   };
 
-  const labels = ["Pick a runtime", "Connect Telegram", "Name & seed", "Provision"];
+  const labels = ["Connect Telegram", "Name & seed", "Provision"];
 
   return (
     <div
@@ -348,32 +226,8 @@ export function Onboarding() {
           {labels[step]}
         </h1>
 
-        {/* Step 0: Runtime */}
+        {/* Step 0: Connect Telegram */}
         {step === 0 && (
-          <div style={{ display: "flex", gap: 16 }}>
-            <RuntimeCard
-              on={runtime === "smol"}
-              icon="bolt"
-              name="SmolVM pack"
-              tag="v0.1.7"
-              desc="Featherweight microVM. Fastest cold boot, lowest idle cost."
-              specs={["~3s cold start", "Auto-restart via launchd", "Self-contained pack image"]}
-              onClick={() => setRuntime("smol")}
-            />
-            <RuntimeCard
-              on={runtime === "docker"}
-              icon="fleet"
-              name="Docker container"
-              tag="stable"
-              desc="Full container runtime. Best for custom system packages."
-              specs={["~8s cold start", "Auto-restart via systemd", "Bring your own Dockerfile"]}
-              onClick={() => setRuntime("docker")}
-            />
-          </div>
-        )}
-
-        {/* Step 1: Connect Telegram */}
-        {step === 1 && (
           <div
             style={{
               background: "var(--surface)",
@@ -464,8 +318,8 @@ export function Onboarding() {
           </div>
         )}
 
-        {/* Step 2: Name & Seed */}
-        {step === 2 && (
+        {/* Step 1: Name & Seed */}
+        {step === 1 && (
           <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
             <div>
               <label
@@ -544,8 +398,7 @@ export function Onboarding() {
               }}
             >
               <span>
-                <span style={{ color: "var(--dim)" }}>Runtime</span> ·{" "}
-                {runtime === "smol" ? "SmolVM" : "Docker"}
+                <span style={{ color: "var(--dim)" }}>Runtime</span> · microsandbox
               </span>
               <span>
                 <span style={{ color: "var(--dim)" }}>Workspace</span> · /workspace
@@ -557,8 +410,8 @@ export function Onboarding() {
           </div>
         )}
 
-        {/* Step 3: Provision */}
-        {step === 3 && (
+        {/* Step 2: Provision */}
+        {step === 2 && (
           <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
             <div
               style={{
@@ -631,12 +484,12 @@ export function Onboarding() {
                 <p style={{ margin: 0, fontSize: 13, color: "var(--mid)", lineHeight: 1.5 }}>
                   {vivariumOnline
                     ? "Your Vivarium is connected and ready. Head to the fleet to see it."
-                    : "Run the setup command below on your server to connect this Vivarium to the hub."}
+                    : "Run the install command below on your machine to connect this Vivarium to the hub."}
                 </p>
               </div>
             </div>
 
-            {/* Setup command */}
+            {/* Install command */}
             <div>
               <div
                 style={{
@@ -648,7 +501,7 @@ export function Onboarding() {
                   marginBottom: 8,
                 }}
               >
-                Setup command
+                Install command
               </div>
               <CopyBlock text={setupResult?.setupCommand ?? ""} />
             </div>
@@ -731,9 +584,9 @@ export function Onboarding() {
               cursor: canNext ? "pointer" : "not-allowed",
             }}
           >
-            {step === 3
+            {step === 2
               ? "Go to fleet"
-              : step === 2
+              : step === 1
                 ? createMutation.isPending
                   ? "Creating…"
                   : "Create"

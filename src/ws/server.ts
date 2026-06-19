@@ -117,11 +117,9 @@ export class WsServer {
 
     const vivariumId = String(vivarium.id);
 
-    // Don't close/terminate the old socket — SmolVM's TSI networking delivers
-    // the TCP RST to other connections from the same guest, causing a cascade.
-    // The orphaned socket will be cleaned up by the heartbeat timeout.
     const existing = this.connections.get(vivariumId);
     if (existing) {
+      existing.ws.close(1000, "Replaced by new connection");
       this.connections.delete(vivariumId);
     }
 
